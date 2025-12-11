@@ -4,6 +4,7 @@ import { Photo } from '../types';
 import * as DataService from '../services/dataService';
 import { compressImage } from '../services/utils';
 import Button from '../components/Button';
+import Lightbox from '../components/Lightbox';
 import { Loader2, Plus, Lock, Image as ImageIcon, Trash2, Clock, SortAsc } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +17,7 @@ const Gallery: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [sortBy, setSortBy] = useState<'time' | 'id'>('time');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewingPhoto, setViewingPhoto] = useState<Photo | null>(null);
 
   useEffect(() => {
     const unsubscribePhotos = DataService.subscribeToPhotos(
@@ -66,13 +68,15 @@ const Gallery: React.FC = () => {
     }
   };
 
-  const handleDelete = async (photo: Photo) => {
+  const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
+      e.stopPropagation();
       if(!user) return;
       if(!confirm("確定要刪除這張照片嗎？")) return;
       
       setDeletingId(photo.id);
       try {
           await DataService.deletePhoto(photo);
+          if (viewingPhoto?.id === photo.id) setViewingPhoto(null);
       } catch(e) {
           console.error(e);
           alert("無法刪除");
@@ -154,16 +158,22 @@ const Gallery: React.FC = () => {
                 const isThisDeleting = deletingId === photo.id;
                 
                 return (
-                    <div key={photo.id} className="break-inside-avoid rounded-xl overflow-hidden bg-slate-800 border border-slate-700 relative group">
+                    <div 
+                        key={photo.id} 
+                        onClick={() => setViewingPhoto(photo)}
+                        className="break-inside-avoid rounded-xl overflow-hidden bg-slate-800 border border-slate-700 relative group cursor-zoom-in"
+                    >
                         <img src={photo.url} alt="Gallery" className="w-full h-auto opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
+                        
                         <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                             <p className="text-[10px] text-white font-mono truncate">By: {photo.uploaderName}</p>
                         </div>
+                        
                         {isOwner && (
                             <button 
-                                onClick={() => handleDelete(photo)}
+                                onClick={(e) => handleDelete(e, photo)}
                                 disabled={isThisDeleting}
-                                className="absolute top-2 right-2 bg-red-600/90 p-1.5 rounded text-white transition-opacity shadow-lg disabled:opacity-50"
+                                className="absolute top-2 right-2 bg-red-600/90 p-1.5 rounded text-white transition-opacity shadow-lg disabled:opacity-50 opacity-0 group-hover:opacity-100"
                             >
                                 {isThisDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                             </button>
@@ -182,6 +192,8 @@ const Gallery: React.FC = () => {
       {showLoginModal && (
         <LoginModal onClose={() => setShowLoginModal(false)} onLoginSuccess={() => {}} />
       )}
+
+      <Lightbox photo={viewingPhoto} onClose={() => setViewingPhoto(null)} />
     </div>
   );
 };
