@@ -74,6 +74,7 @@ const Gallery: React.FC = () => {
       try {
           await DataService.deletePhoto(photo);
       } catch(e) {
+          console.error(e);
           alert("無法刪除");
       } finally {
           setDeletingId(null);
@@ -162,7 +163,7 @@ const Gallery: React.FC = () => {
                             <button 
                                 onClick={() => handleDelete(photo)}
                                 disabled={isThisDeleting}
-                                className="absolute top-2 right-2 bg-red-600/80 p-1.5 rounded text-white transition-opacity shadow-lg"
+                                className="absolute top-2 right-2 bg-red-600/90 p-1.5 rounded text-white transition-opacity shadow-lg disabled:opacity-50"
                             >
                                 {isThisDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                             </button>

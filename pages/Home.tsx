@@ -15,10 +15,12 @@ const Home: React.FC = () => {
   const [newStaffId, setNewStaffId] = useState('');
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    if (confirm("確定要登出系統嗎？")) {
+const handleLogout = (e: React.MouseEvent) => {
+  e.stopPropagation();
+  console.log('handleLogout triggered');
+//    if (confirm("確定要登出系統嗎？")) {
       logout();
-    }
+//    }
   };
 
   const handleAddStaff = async () => {
@@ -87,7 +89,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-       <section className="grid grid-cols-2 gap-4">
+      <section className="grid grid-cols-2 gap-4">
         {menuItems.map((item, idx) => (
           <div
             key={idx}
@@ -107,7 +109,7 @@ const Home: React.FC = () => {
           </div>
         ))}
       </section>
-      
+
       <section className="animate-fade-in-up">
         {user ? (
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl shadow-2xl group mb-6">
@@ -148,7 +150,7 @@ const Home: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-black/20 border-t border-white/5 p-2 flex justify-between items-center">
+            <div className="bg-black/20 border-t border-white/5 p-2 flex justify-between items-center relative z-10">
               <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 px-3 py-1 rounded hover:bg-white/5 transition-colors">
                 <LogOut size={14} /> 登出系統
               </button>

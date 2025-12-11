@@ -47,15 +47,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
              {user ? (
                 <button 
                   onClick={handleLogout} 
-                  className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition-all"
+                  className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all shadow-[0_0_10px_rgba(239,68,68,0.1)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]"
                 >
                     <LogOut size={14} />
                     <span>登出</span>
                 </button>
              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-slate-500"></div>
-                  <span className="text-[10px] font-mono text-slate-500">訪客模式</span>
+                <div className="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded-full border border-slate-700">
+                  <div className="h-2 w-2 rounded-full bg-slate-500 animate-pulse"></div>
+                  <span className="text-[10px] font-mono text-slate-400">GUEST MODE</span>
                 </div>
              )}
           </div>

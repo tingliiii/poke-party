@@ -88,7 +88,6 @@ export const deletePhoto = async (photo: Photo) => {
     } catch (e: any) {
       console.warn("Storage 檔案可能已遺失或權限不足，但仍將刪除資料庫紀錄", e);
       // 若是檔案找不到 (object-not-found)，我們允許繼續刪除 Firestore 資料
-      // 若是權限不足，理論上不應該發生 (如果是 Owner/Admin)
     }
   }
   

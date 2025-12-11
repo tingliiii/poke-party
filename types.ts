@@ -1,4 +1,3 @@
-
 export interface FirebaseConfig {
   apiKey: string;            // API 金鑰，用於識別專案
   authDomain: string;        // 驗證網域

@@ -103,7 +103,8 @@ const DressCode: React.FC = () => {
     try {
         await DataService.deletePhoto(photo);
     } catch (e) {
-        alert("權限不足或刪除失敗");
+        console.error(e);
+        alert("刪除失敗");
     } finally {
         setDeletingId(null);
     }
@@ -201,7 +202,7 @@ const DressCode: React.FC = () => {
                                 <button 
                                     onClick={() => handleDelete(photo)}
                                     disabled={isThisDeleting}
-                                    className="absolute top-3 right-3 bg-red-600/80 backdrop-blur-md p-2 rounded-lg text-white hover:bg-red-500 transition-all border border-red-400/30 z-20 shadow-lg"
+                                    className="absolute top-3 right-3 bg-red-600/90 backdrop-blur-md p-2 rounded-lg text-white hover:bg-red-500 transition-all border border-red-400/50 z-20 shadow-lg disabled:opacity-50"
                                 >
                                     {isThisDeleting ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16} />}
                                 </button>
