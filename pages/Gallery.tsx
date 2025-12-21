@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Photo } from '../types';
 import * as DataService from '../services/dataService';
-import { compressImage } from '../services/utils';
+import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import Lightbox from '../components/Lightbox';
 import { Loader2, Plus, Lock, Image as ImageIcon, Trash2, Clock, SortAsc } from 'lucide-react';
@@ -50,7 +50,7 @@ const Gallery: React.FC = () => {
       const files = Array.from(e.target.files).slice(0, 10);
       const promises = files.map(async (file: File) => {
         try {
-            const compressedFile = await compressImage(file, 1);
+            const compressedFile = await compressImage(file);
             if (compressedFile.size <= 1024 * 1024) {
                 await DataService.uploadPhoto(compressedFile, 'gallery', user);
             }
@@ -71,7 +71,7 @@ const Gallery: React.FC = () => {
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
       e.stopPropagation();
       if(!user) return;
-      if(!confirm("確定要刪除這張照片嗎？")) return;
+      // if(!confirm("確定要刪除這張照片嗎？")) return;
       
       setDeletingId(photo.id);
       try {

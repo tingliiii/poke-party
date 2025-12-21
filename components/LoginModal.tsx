@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Button from './Button';
-import { User as UserIcon, LogOut, Loader2 } from 'lucide-react';
+import { User as UserIcon, LogOut, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface LoginModalProps {
@@ -12,11 +12,26 @@ interface LoginModalProps {
 const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   const [employeeId, setEmployeeId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
+
+  // 處理輸入變更：僅允許數字，且長度上限為 5
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // 過濾非數字
+    if (value.length <= 5) {
+      setEmployeeId(value);
+      setError(null); // 輸入時清除錯誤訊息
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!employeeId.trim()) return;
+    
+    // 嚴格校驗：必須為五位數字
+    if (!/^\d{5}$/.test(employeeId)) {
+      setError("員編必須為精確的五位數字");
+      return;
+    }
     
     setIsProcessing(true);
     try {
@@ -25,11 +40,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         onClose();
     } catch (error) {
         console.error(error);
-        alert("登入失敗，請檢查網路連線");
+        setError("登入失敗，請確認網路狀態");
     } finally {
         setIsProcessing(false);
     }
   };
+
+  const isValidLength = employeeId.length === 5;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
@@ -48,29 +65,58 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
                         <UserIcon className="text-poke-cyan" />
                     </div>
                 </div>
-                <h3 className="text-2xl font-display font-bold text-white tracking-wide">身分驗證</h3>
-                <p className="text-poke-cyan/60 text-xs font-mono mt-1">請輸入員編以解鎖功能</p>
+                <h3 className="text-2xl font-display font-bold text-white tracking-wide">訓練家登入</h3>
+                <p className="text-poke-cyan/60 text-xs font-mono mt-1 uppercase tracking-widest">Authentication Required</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-6">
                 <div className="relative">
+                    <div className="text-[10px] text-slate-500 font-mono mb-2 flex justify-between uppercase">
+                        <span>Staff ID</span>
+                        <span className={isValidLength ? 'text-poke-cyan' : 'text-slate-700'}>
+                            {employeeId.length} / 5 Digits
+                        </span>
+                    </div>
                     <input 
                         type="text" 
-                        className="w-full bg-black/30 text-center text-xl font-display text-white py-4 border-b-2 border-slate-700 focus:border-poke-cyan outline-none transition-colors placeholder:text-slate-700"
-                        placeholder="12345"
+                        inputMode="numeric" // 在手機端觸發數字鍵盤
+                        pattern="[0-9]*"
+                        className={`w-full bg-black/30 text-center text-3xl font-display py-4 border-b-2 outline-none transition-all placeholder:text-slate-800 tracking-widest ${
+                            error ? 'border-poke-red text-poke-red' : (isValidLength ? 'border-poke-cyan text-white' : 'border-slate-700 text-slate-400')
+                        }`}
+                        placeholder="00000"
                         autoFocus
                         value={employeeId}
-                        onChange={e => setEmployeeId(e.target.value)}
+                        onChange={handleInputChange}
                         disabled={isProcessing}
                     />
+                    
+                    {error && (
+                        <div className="mt-3 flex items-center gap-1.5 text-poke-red text-[11px] font-medium animate-shake">
+                            <AlertCircle size={14} />
+                            {error}
+                        </div>
+                    )}
                 </div>
-                <Button fullWidth type="submit" disabled={isProcessing} className="shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-                    {isProcessing ? <Loader2 className="animate-spin" /> : '進入系統'}
-                </Button>
+
+                <div className="space-y-3">
+                    <Button 
+                        fullWidth 
+                        type="submit" 
+                        disabled={isProcessing || !isValidLength} 
+                        className={`shadow-lg transition-all ${isValidLength ? 'shadow-poke-cyan/20' : 'opacity-50 grayscale'}`}
+                    >
+                        {isProcessing ? <Loader2 className="animate-spin" /> : '登入系統'}
+                    </Button>
+                    
+                    <p className="text-center text-[10px] text-slate-500 font-mono">
+                        VERSION 2.8.4 // SECURITY LEVEL A
+                    </p>
+                </div>
             </form>
         </div>
         
-        <div className="absolute bottom-2 left-4 text-[10px] text-slate-700 font-mono">SECURE CONNECTION</div>
+        <div className="absolute bottom-2 left-4 text-[10px] text-slate-800 font-mono pointer-events-none">SECURE_LINK_ACTIVE</div>
       </div>
     </div>
   );

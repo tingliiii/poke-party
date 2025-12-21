@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { SEATING_CHART_URL as DEFAULT_URL } from '../constants';
 import { ZoomIn, X, MapPin, Scan, Upload, Loader2 } from 'lucide-react';
 import * as DataService from '../services/dataService';
-import { compressImage } from '../services/utils';
+import { compressImage } from '../services/imageService';
 import { useAuth } from '../context/AuthContext';
 
 const Seating: React.FC = () => {
@@ -24,7 +24,7 @@ const Seating: React.FC = () => {
       const file = e.target.files[0];
       setUploading(true);
       try {
-          const compressed = await compressImage(file, 1);
+          const compressed = await compressImage(file);
           await DataService.uploadSeatingChart(compressed);
       } catch (e) {
           console.error(e);
