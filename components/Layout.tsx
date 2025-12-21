@@ -14,9 +14,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    if(confirm("確定要登出嗎？")) {
+    // if(confirm("確定要登出嗎？")) {
         logout();
-    }
+    // }
   };
 
   const navItems = [

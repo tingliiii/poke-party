@@ -5,7 +5,6 @@ import { ZoomIn, X, MapPin, Scan, Upload, Loader2 } from 'lucide-react';
 import * as DataService from '../services/dataService';
 import { compressImage } from '../services/utils';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/Button';
 
 const Seating: React.FC = () => {
   const { user } = useAuth();
@@ -72,9 +71,9 @@ const Seating: React.FC = () => {
 
       <div className="bg-amber-900/10 border border-amber-500/20 text-amber-200/80 p-4 rounded-xl text-sm w-full font-mono relative overflow-hidden">
         <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-        <p className="font-bold mb-1 text-amber-400">:: 戰術建議 ::</p>
+        <p className="font-bold mb-1 text-amber-400">:: 注意事項 ::</p>
         <p className="text-xs leading-relaxed opacity-80">
-          請參閱您的數位識別證以確認單位編號。VIP 區域位於北區象限。
+          舞台位置在上方；請按照座位表之標示入座
         </p>
       </div>
 

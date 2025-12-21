@@ -82,8 +82,8 @@ const handleLogout = (e: React.MouseEvent) => {
         <div className="space-y-1">
           <h4 className="text-sm font-bold text-poke-yellow">系統公告</h4>
           <p className="text-xs text-slate-400 leading-relaxed">
-            • 傳輸協定：最大上傳限制 1MB<br />
-            • 投票系統：每人一票，可重複點擊更改<br />
+            • 圖片上傳限制：最大 1MB<br />
+            • 投票系統：每人一票，可重複點擊修改<br />
             • 快問快答請等待主持人開始遊戲
           </p>
         </div>

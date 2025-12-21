@@ -131,7 +131,7 @@ const DressCode: React.FC = () => {
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
     e.stopPropagation(); // Prevent opening lightbox
     if(!user) return;
-    if(!confirm("確認刪除：確定要移除這張照片嗎？此動作無法復原。")) return;
+    // if(!confirm("確認刪除：確定要移除這張照片嗎？此動作無法復原。")) return;
     
     setDeletingId(photo.id);
     try {
