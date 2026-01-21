@@ -27,7 +27,9 @@ const Home: React.FC = () => {
 
   const handleLogout = (e: React.MouseEvent) => {
     e.stopPropagation();
-    logout();
+    if (window.confirm('確定要登出嗎？')) {
+      logout();
+    }
   };
 
   const handleAddStaff = async () => {
@@ -119,7 +121,7 @@ const Home: React.FC = () => {
               <item.icon size={36} />
             </div>
             <div className="flex-1">
-                <h3 className="font-display font-bold text-xl text-white leading-tight group-hover:text-poke-cyan transition-colors">{item.title}</h3>
+                <h3 className="font-display font-bold text-xl text-white leading-tight group-hover:scale-105 transition-transform origin-left">{item.title}</h3>
                 <p className="text-slate-400 text-[10px] mt-0.5 font-mono tracking-widest uppercase opacity-70">{item.subtitle}</p>
             </div>
             <ChevronRight className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" size={20} />

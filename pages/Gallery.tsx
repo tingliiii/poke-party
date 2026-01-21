@@ -112,13 +112,13 @@ const Gallery: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="pb-20">
       <div className="bg-slate-900/80 border border-emerald-500/30 p-6 rounded-2xl relative overflow-hidden backdrop-blur-md">
         <div className="relative z-10">
              <div className="flex items-center justify-between mb-4">
                  <div>
                     <h2 className="text-2xl font-display font-bold text-emerald-400 text-glow-emerald text-glow">精彩時光機</h2>
-                    <p className="text-slate-400 text-xs font-mono">記錄每一刻的精彩回憶</p>
+                    <p className="text-slate-400 text-xs font-mono">記錄春酒的精彩回憶</p>
                  </div>
                  <ImageIcon className="text-emerald-500/50 w-8 h-8" />
              </div>
@@ -189,8 +189,8 @@ const Gallery: React.FC = () => {
                         <img src={photo.url} alt="Gallery" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
                         <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
                             <div className="flex justify-between items-end">
-                                <span className="text-[9px] text-white font-medium truncate max-w-[60%] flex items-center gap-0.5">
-                                    <User size={8} /> {photo.uploaderName}
+                                <span className="text-[9px] text-white font-medium truncate max-w-[60%] flex items-center gap-0.5 uppercase">
+                                    <User size={8} /> {photo.uploaderId}
                                 </span>
                                 <span className="text-[8px] text-emerald-400 font-mono">
                                     {formatTime(photo.timestamp)}

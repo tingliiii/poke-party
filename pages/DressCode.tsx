@@ -101,7 +101,7 @@ const DressCode: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="pb-20">
       <div className="glass-panel p-5 rounded-2xl relative overflow-hidden space-y-4">
         <div className="flex justify-between items-start relative z-10">
           <div>

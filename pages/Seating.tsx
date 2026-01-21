@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SEATING_CHART_URL as DEFAULT_URL } from '../constants';
 import { ZoomIn, X, MapPin, Scan, Upload, Loader2 } from 'lucide-react';
 import * as DataService from '../services/dataService';
@@ -11,10 +11,6 @@ const Seating: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [chartUrl, setChartUrl] = useState(DEFAULT_URL);
   const [uploading, setUploading] = useState(false);
-  
-  // Swipe state
-  const touchStart = useRef<{ x: number, y: number } | null>(null);
-  const [offsetY, setOffsetY] = useState(0);
 
   useEffect(() => {
     const unsub = DataService.subscribeToSeating((url) => {
@@ -36,33 +32,6 @@ const Seating: React.FC = () => {
       } finally {
           setUploading(false);
       }
-  };
-
-  // Fullscreen swipe closure logic
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStart.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY
-    };
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart.current) return;
-    const deltaY = e.touches[0].clientY - touchStart.current.y;
-    // Only track upward swipe (negative deltaY)
-    if (deltaY < 0) {
-      setOffsetY(deltaY);
-    }
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart.current) return;
-    const deltaY = e.changedTouches[0].clientY - touchStart.current.y;
-    if (deltaY < -100) {
-      setIsOpen(false);
-    }
-    setOffsetY(0);
-    touchStart.current = null;
   };
 
   return (
@@ -120,24 +89,20 @@ const Seating: React.FC = () => {
 
       {isOpen && (
         <div 
-          className="fixed inset-0 z-[100] bg-slate-950/95 flex flex-col items-center justify-center p-0 backdrop-blur-xl touch-none"
+          className="fixed inset-0 z-[100] bg-slate-950/98 flex flex-col items-center justify-center p-0 backdrop-blur-xl"
           onClick={() => setIsOpen(false)}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
         >
-            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center bg-black/50 z-50">
-                <span className="text-white text-[10px] font-mono opacity-50 uppercase tracking-widest">Swipe up to close</span>
-                <button className="text-white bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors">
+            <div className="absolute top-0 left-0 right-0 p-4 flex justify-end items-center z-50">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+                  className="text-white bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors border border-white/20"
+                >
                     <X size={24} />
                 </button>
             </div>
             
-            <div 
-              className="overflow-auto w-full h-full flex items-center justify-center p-4 transition-transform duration-150 ease-out"
-              style={{ transform: `translateY(${offsetY}px)` }}
-            >
-                <img src={chartUrl} alt="Seating Chart Full" className="max-w-none h-auto min-w-full shadow-2xl pointer-events-none" />
+            <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+                <img src={chartUrl} alt="Seating Chart Full" className="max-w-none h-auto min-w-full shadow-2xl" />
             </div>
         </div>
       )}
