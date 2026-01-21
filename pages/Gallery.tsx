@@ -5,7 +5,7 @@ import * as DataService from '../services/dataService';
 import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import Lightbox from '../components/Lightbox';
-import { Loader2, Plus, Lock, Image as ImageIcon, Trash2, Clock, SortAsc } from 'lucide-react';
+import { Loader2, Plus, Lock, Image as ImageIcon, Trash2, Clock, SortAsc, User, ChevronUp, ChevronDown } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,9 +15,13 @@ const Gallery: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // 排序狀態
   const [sortBy, setSortBy] = useState<'time' | 'id'>('time');
+  const [isDescending, setIsDescending] = useState(true);
+
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [viewingPhoto, setViewingPhoto] = useState<Photo | null>(null);
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const unsubscribePhotos = DataService.subscribeToPhotos(
@@ -33,6 +37,15 @@ const Gallery: React.FC = () => {
     );
     return () => { unsubscribePhotos(); };
   }, []);
+
+  const handleSortChange = (newSort: 'time' | 'id') => {
+    if (sortBy === newSort) {
+      setIsDescending(!isDescending);
+    } else {
+      setSortBy(newSort);
+      setIsDescending(true);
+    }
+  };
 
   const handleUploadClick = () => {
       if (!user) {
@@ -55,12 +68,11 @@ const Gallery: React.FC = () => {
                 await DataService.uploadPhoto(compressedFile, 'gallery', user);
             }
         } catch (error) {
-            console.error(`Skipping ${file.name}: Compression failed`, error);
+            console.error(error);
         }
       });
       await Promise.all(promises);
     } catch (error) {
-      console.error(error);
       alert("部分照片上傳失敗");
     } finally {
       setUploading(false);
@@ -71,14 +83,13 @@ const Gallery: React.FC = () => {
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
       e.stopPropagation();
       if(!user) return;
-      // if(!confirm("確定要刪除這張照片嗎？")) return;
+      if(!confirm("確定要刪除這張照片嗎？")) return;
       
       setDeletingId(photo.id);
       try {
           await DataService.deletePhoto(photo);
-          if (viewingPhoto?.id === photo.id) setViewingPhoto(null);
+          setViewingIndex(null);
       } catch(e) {
-          console.error(e);
           alert("無法刪除");
       } finally {
           setDeletingId(null);
@@ -86,12 +97,19 @@ const Gallery: React.FC = () => {
   };
 
   const sortedPhotos = [...photos].sort((a, b) => {
+      let result = 0;
       if (sortBy === 'time') {
-          return b.timestamp - a.timestamp; 
+          result = a.timestamp - b.timestamp; 
       } else {
-          return a.uploaderId.localeCompare(b.uploaderId); 
+          result = a.uploaderId.localeCompare(b.uploaderId); 
       }
+      return isDescending ? -result : result;
   });
+
+  const formatTime = (ts: number) => {
+    const date = new Date(ts);
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -99,8 +117,8 @@ const Gallery: React.FC = () => {
         <div className="relative z-10">
              <div className="flex items-center justify-between mb-4">
                  <div>
-                    <h2 className="text-2xl font-display font-bold text-emerald-400 text-glow-emerald">春酒活動相簿</h2>
-                    <p className="text-slate-400 text-xs font-mono">歡迎大家上傳</p>
+                    <h2 className="text-2xl font-display font-bold text-emerald-400 text-glow-emerald text-glow">精彩時光機</h2>
+                    <p className="text-slate-400 text-xs font-mono">記錄每一刻的精彩回憶</p>
                  </div>
                  <ImageIcon className="text-emerald-500/50 w-8 h-8" />
              </div>
@@ -122,78 +140,82 @@ const Gallery: React.FC = () => {
                     onClick={handleUploadClick}
                 >
                     {uploading ? <Loader2 className="animate-spin" /> : (user ? <Plus /> : <Lock size={16} />)}
-                    {uploading ? '上傳中...' : (user ? '上傳照片 (多選)' : '登入以上傳')}
+                    {uploading ? '同步中...' : (user ? '分享您的照片' : '登入以上傳')}
                 </Button>
             </div>
         </div>
         
          <div className="flex justify-end border-t border-white/5 pt-2 mt-4 relative z-10">
             <div className="flex bg-slate-900/80 rounded-lg p-1 border border-emerald-500/30">
-                <button 
-                    onClick={() => setSortBy('time')}
-                    className={`flex items-center gap-1 px-3 py-1 rounded text-[10px] font-bold transition-colors ${sortBy === 'time' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'}`}
-                >
-                    <Clock size={12} /> 時間
-                </button>
-                <button 
-                    onClick={() => setSortBy('id')}
-                    className={`flex items-center gap-1 px-3 py-1 rounded text-[10px] font-bold transition-colors ${sortBy === 'id' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'}`}
-                >
-                    <SortAsc size={12} /> 員編
-                </button>
+                {[
+                  { id: 'time', label: '時間', icon: Clock },
+                  { id: 'id', label: '員編', icon: SortAsc }
+                ].map(btn => (
+                  <button 
+                    key={btn.id}
+                    onClick={() => handleSortChange(btn.id as any)}
+                    className={`
+                      flex items-center gap-1 px-3 py-1 rounded text-[10px] font-bold transition-all
+                      ${sortBy === btn.id ? 'bg-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'text-slate-400 hover:text-white'}
+                    `}
+                  >
+                    <btn.icon size={12} />
+                    {btn.label}
+                    {sortBy === btn.id && (
+                      isDescending ? <ChevronDown size={10} className="ml-0.5" /> : <ChevronUp size={10} className="ml-0.5" />
+                    )}
+                  </button>
+                ))}
             </div>
         </div>
-
         <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.05)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none"></div>
       </div>
 
       {loading ? (
         <div className="grid grid-cols-3 gap-2">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square bg-slate-800 rounded-lg animate-pulse border border-slate-700" />)}
+            {[1,2,3,4,5,6,7,8,9].map(i => <div key={i} className="aspect-square bg-slate-800 rounded-lg animate-pulse border border-slate-700" />)}
         </div>
       ) : (
-        <div className="columns-2 gap-3 space-y-3">
-            {sortedPhotos.map(photo => {
+        <div className="grid grid-cols-3 gap-1.5">
+            {sortedPhotos.map((photo, index) => {
                 const isOwner = user?.id === photo.uploaderId || user?.isAdmin;
                 const isThisDeleting = deletingId === photo.id;
-                
                 return (
                     <div 
                         key={photo.id} 
-                        onClick={() => setViewingPhoto(photo)}
-                        className="break-inside-avoid rounded-xl overflow-hidden bg-slate-800 border border-slate-700 relative group cursor-zoom-in"
+                        onClick={() => setViewingIndex(index)}
+                        className="relative aspect-square rounded-md overflow-hidden bg-slate-800 border border-slate-700/50 group cursor-zoom-in active:scale-95 transition-transform"
                     >
-                        <img src={photo.url} alt="Gallery" className="w-full h-auto opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
-                        
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-[10px] text-white font-mono truncate">By: {photo.uploaderName}</p>
+                        <img src={photo.url} alt="Gallery" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
+                        <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+                            <div className="flex justify-between items-end">
+                                <span className="text-[9px] text-white font-medium truncate max-w-[60%] flex items-center gap-0.5">
+                                    <User size={8} /> {photo.uploaderName}
+                                </span>
+                                <span className="text-[8px] text-emerald-400 font-mono">
+                                    {formatTime(photo.timestamp)}
+                                </span>
+                            </div>
                         </div>
-                        
                         {isOwner && (
                             <button 
                                 onClick={(e) => handleDelete(e, photo)}
                                 disabled={isThisDeleting}
-                                className="absolute top-2 right-2 bg-red-600/90 p-1.5 rounded text-white transition-opacity shadow-lg disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                                className="absolute top-1 right-1 bg-red-600/90 p-1 rounded text-white transition-all shadow-lg disabled:opacity-50 opacity-0 group-hover:opacity-100"
                             >
-                                {isThisDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                {isThisDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
                             </button>
                         )}
                     </div>
                 );
             })}
-            {photos.length === 0 && (
-                <div className="col-span-full text-center py-12 text-slate-500 bg-slate-900/30 rounded-xl border border-dashed border-slate-700 font-mono text-sm">
-                    資料庫無資料
-                </div>
-            )}
         </div>
       )}
 
       {showLoginModal && (
         <LoginModal onClose={() => setShowLoginModal(false)} onLoginSuccess={() => {}} />
       )}
-
-      <Lightbox photo={viewingPhoto} onClose={() => setViewingPhoto(null)} />
+      <Lightbox photos={sortedPhotos} initialIndex={viewingIndex} onClose={() => setViewingIndex(null)} />
     </div>
   );
 };

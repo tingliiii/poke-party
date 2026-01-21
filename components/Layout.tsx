@@ -14,9 +14,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    // if(confirm("確定要登出嗎？")) {
-        logout();
-    // }
+    logout();
   };
 
   const navItems = [
@@ -31,7 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Tech Header */}
       <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-poke-dark/80 backdrop-blur-md border-b border-white/5">
         <div className="max-w-md mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2 group cursor-default">
+          <Link to={AppRoute.HOME} className="flex items-center gap-2 group cursor-pointer transition-transform active:scale-95">
              <div className="relative">
                 <Zap className="text-poke-yellow fill-poke-yellow w-6 h-6 animate-pulse" />
                 <div className="absolute inset-0 bg-poke-yellow blur-md opacity-40"></div>
@@ -40,10 +38,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 POKE<span className="text-poke-cyan">PARTY</span>
                 <span className="text-[10px] ml-1 text-gray-500 font-normal tracking-widest">OS v2.8</span>
              </h1>
-          </div>
+          </Link>
           
           <div className="flex items-center gap-3">
-             {user ? (
+             {user && (
                 <button 
                   onClick={handleLogout} 
                   className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all shadow-[0_0_10px_rgba(239,68,68,0.1)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]"
@@ -51,11 +49,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <LogOut size={14} />
                     <span>登出</span>
                 </button>
-             ) : (
-                <div className="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded-full border border-slate-700">
-                  <div className="h-2 w-2 rounded-full bg-slate-500 animate-pulse"></div>
-                  <span className="text-[10px] font-mono text-slate-400">GUEST MODE</span>
-                </div>
              )}
           </div>
         </div>
