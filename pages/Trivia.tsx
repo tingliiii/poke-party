@@ -168,7 +168,8 @@ const Trivia: React.FC = () => {
            <div className="space-y-6">
               <h2 className="text-3xl font-display font-bold text-center text-poke-yellow text-glow">領先訓練家</h2>
               <div className="bg-slate-900/80 border border-slate-700 rounded-2xl overflow-hidden">
-                {Object.entries(gameState.answers)
+                {/* Fix: Casting Object.entries for correct type inference of scores to resolve TS unknown errors */}
+                {(Object.entries(gameState.answers) as [string, { answerIdx: number; timeTaken: number; score: number }][])
                   .sort(([, a], [, b]) => b.score - a.score)
                   .slice(0, 10)
                   .map(([uid, data], idx) => (

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { AppRoute } from '../types';
-import { Home, Camera, Grid, Map, Gamepad2, Zap, LogOut } from 'lucide-react';
+import { Home, Camera, Grid, Map, Zap, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
@@ -22,7 +22,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navItems = [
     { icon: Home, label: '首頁', path: AppRoute.HOME },
     { icon: Camera, label: '穿搭', path: AppRoute.DRESSCODE },
-    { icon: Gamepad2, label: '對戰', path: AppRoute.TRIVIA },
     { icon: Grid, label: '相簿', path: AppRoute.GALLERY },
     { icon: Map, label: '座位', path: AppRoute.SEATING },
   ];

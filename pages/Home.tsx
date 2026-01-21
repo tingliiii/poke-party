@@ -1,42 +1,75 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppRoute } from '../types';
+import { AppRoute, User } from '../types';
 import Button from '../components/Button';
-import { Camera, Gamepad2, Grid, Map, LogIn, LogOut, User as UserIcon, QrCode, Shield, Zap, Settings, UserPlus } from 'lucide-react';
+import { Camera, Grid, Map, LogIn, LogOut, User as UserIcon, QrCode, Shield, Zap, Settings, UserPlus, X, Loader2, Trash2, Trophy, ListOrdered } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
-import { setAdminStatus } from '../services/userService';
+import * as UserService from '../services/userService';
 
 const Home: React.FC = () => {
   const { user, logout } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [newStaffId, setNewStaffId] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [adminList, setAdminList] = useState<User[]>([]);
   const navigate = useNavigate();
 
-const handleLogout = (e: React.MouseEvent) => {
-  e.stopPropagation();
-  console.log('handleLogout triggered');
-//    if (confirm("確定要登出系統嗎？")) {
-      logout();
-//    }
+  // 監聽管理員名單
+  useEffect(() => {
+    if (showAdminModal && user?.isAdmin) {
+      const unsub = UserService.subscribeToAdmins(setAdminList);
+      return () => unsub();
+    }
+  }, [showAdminModal, user]);
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    logout();
   };
 
   const handleAddStaff = async () => {
-    if (!newStaffId.trim()) return;
-    if (confirm(`確定要將 ${newStaffId} 設定為工作人員嗎？`)) {
+    const targetId = newStaffId.trim().toUpperCase();
+    if (!targetId) return;
+    
+    setIsProcessing(true);
+    try {
+      await UserService.setAdminStatus(targetId, true);
+      setNewStaffId('');
+      // 不需要 alert，因為列表會即時更新
+    } catch (e) {
+      alert("授權失敗，請檢查網路連接");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRemoveStaff = async (targetId: string) => {
+    if (targetId === user?.id) {
+        alert("不可移除自己的權限");
+        return;
+    }
+    if (confirm(`確定要移除 ${targetId} 的管理員權限嗎？`)) {
       try {
-        await setAdminStatus(newStaffId.trim(), true);
-        alert("設定成功");
-        setNewStaffId('');
+        await UserService.setAdminStatus(targetId, false);
       } catch (e) {
-        alert("設定失敗");
+        alert("移除失敗");
       }
     }
   };
 
   const menuItems = [
+    // {
+    //   title: '對戰競技場',
+    //   subtitle: '快問快答大賽',
+    //   icon: Trophy,
+    //   route: AppRoute.TRIVIA,
+    //   gradient: 'from-purple-500/20 to-indigo-600/20',
+    //   border: 'border-purple-500/30',
+    //   iconColor: 'text-purple-400'
+    // },
     {
       title: '就決定是你了',
       subtitle: '票選最強寶可夢',
@@ -45,15 +78,6 @@ const handleLogout = (e: React.MouseEvent) => {
       gradient: 'from-pink-500/20 to-purple-600/20',
       border: 'border-pink-500/30',
       iconColor: 'text-pink-400'
-    },
-    {
-      title: '快問快答挑戰',
-      subtitle: '誰是最了解玉山的人',
-      icon: Gamepad2,
-      route: AppRoute.TRIVIA,
-      gradient: 'from-cyan-500/20 to-blue-600/20',
-      border: 'border-cyan-500/30',
-      iconColor: 'text-cyan-400'
     },
     {
       title: '春酒活動相簿',
@@ -84,12 +108,11 @@ const handleLogout = (e: React.MouseEvent) => {
           <p className="text-xs text-slate-400 leading-relaxed">
             • 圖片上傳限制：最大 1MB<br />
             • 投票系統：每人一票，可重複點擊修改<br />
-            • 快問快答請等待主持人開始遊戲
           </p>
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 gap-4">
         {menuItems.map((item, idx) => (
           <div
             key={idx}
@@ -141,23 +164,24 @@ const handleLogout = (e: React.MouseEvent) => {
                   <div className="bg-white/5 border border-white/10 px-3 py-1 rounded text-xs font-mono text-poke-cyan">
                     ID: {user.id}
                   </div>
-                  {user.score !== undefined && user.score > 0 && (
-                    <div className="text-poke-yellow text-xs font-display font-bold">
-                      EXP: {user.score}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
-            <div className="bg-black/20 border-t border-white/5 p-2 flex justify-between items-center relative z-10">
+            <div className="bg-black/20 border-t border-white/5 p-2 flex flex-wrap gap-2 justify-between items-center relative z-10">
               <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 px-3 py-1 rounded hover:bg-white/5 transition-colors">
                 <LogOut size={14} /> 登出系統
               </button>
+              
               {user.isAdmin && (
-                <button onClick={() => setShowAdminModal(true)} className="text-xs text-yellow-400 hover:text-yellow-300 flex items-center gap-1 px-3 py-1 rounded hover:bg-white/5 transition-colors">
-                  <Settings size={14} /> 設定工作人員
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={() => navigate(AppRoute.TRIVIA_ADMIN)} className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 px-3 py-1 rounded hover:bg-white/5 transition-colors border border-purple-500/20">
+                      <ListOrdered size={14} /> 題庫管理
+                    </button>
+                    <button onClick={() => setShowAdminModal(true)} className="text-xs text-yellow-400 hover:text-yellow-300 flex items-center gap-1 px-3 py-1 rounded hover:bg-white/5 transition-colors border border-yellow-500/20">
+                      <Settings size={14} /> 員工授權
+                    </button>
+                </div>
               )}
             </div>
           </div>
@@ -165,7 +189,7 @@ const handleLogout = (e: React.MouseEvent) => {
           <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-6 flex flex-col items-center text-center backdrop-blur-sm mb-6">
             <Shield className="w-12 h-12 text-slate-500 mb-4" />
             <h2 className="text-xl font-display font-bold text-white mb-2">訪客模式</h2>
-            <p className="text-slate-400 text-sm mb-6 max-w-[200px]">您目前為訪客身分，登入後即可參與投票與對戰。</p>
+            <p className="text-slate-400 text-sm mb-6 max-w-[200px]">您目前為訪客身分，登入後即可參與投票與分享照片。</p>
             <Button onClick={() => setShowLogin(true)} variant="primary" className="shadow-[0_0_15px_rgba(6,182,212,0.3)]">
               <LogIn size={18} />
               登入
@@ -174,22 +198,69 @@ const handleLogout = (e: React.MouseEvent) => {
         )}
       </section>
 
-      {/* Admin Modal */}
+      {/* Admin Authorization Modal */}
       {showAdminModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 w-full max-w-sm rounded-2xl border border-yellow-500/30 p-6 shadow-2xl">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><UserPlus size={20} className="text-yellow-500" /> 新增工作人員</h3>
-            <div className="space-y-4">
-              <input
-                className="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-yellow-500 outline-none"
-                placeholder="輸入員編"
-                value={newStaffId}
-                onChange={e => setNewStaffId(e.target.value)}
-              />
-              <div className="flex gap-2 justify-end">
-                <Button variant="ghost" onClick={() => setShowAdminModal(false)}>取消</Button>
-                <Button onClick={handleAddStaff}>確認新增</Button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-slate-900 w-full max-w-sm rounded-2xl border border-yellow-500/30 p-0 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <UserPlus size={20} className="text-yellow-500" /> 員工權限管理
+                </h3>
+                <button onClick={() => setShowAdminModal(false)} className="text-slate-500 hover:text-white">
+                    <X size={20} />
+                </button>
+            </div>
+
+            <div className="p-6 space-y-6 overflow-y-auto">
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">新增管理員 (輸入員編)</label>
+                <div className="flex gap-2">
+                    <input
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none font-mono"
+                        placeholder="例如: 12345"
+                        value={newStaffId}
+                        onChange={e => setNewStaffId(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && handleAddStaff()}
+                    />
+                    <Button onClick={handleAddStaff} disabled={isProcessing || !newStaffId.trim()} className="px-4 py-3 h-auto">
+                        {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
+                    </Button>
+                </div>
               </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">目前管理員名單 ({adminList.length})</label>
+                <div className="space-y-2">
+                    {adminList.map(admin => (
+                        <div key={admin.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex justify-between items-center group">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-yellow-500">
+                                    <Shield size={14} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-white">{admin.name}</p>
+                                    <p className="text-[10px] font-mono text-slate-500">ID: {admin.id}</p>
+                                </div>
+                            </div>
+                            {admin.id !== user?.id && (
+                                <button 
+                                    onClick={() => handleRemoveStaff(admin.id)}
+                                    className="p-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    {adminList.length === 0 && (
+                        <p className="text-center py-8 text-slate-600 text-xs font-mono">NO ADMIN RECORDS FOUND</p>
+                    )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-black/20 border-t border-white/5 text-center">
+                <p className="text-[10px] text-slate-500 font-mono tracking-tighter">PERMISSION UPDATES ARE REAL-TIME</p>
             </div>
           </div>
         </div>
