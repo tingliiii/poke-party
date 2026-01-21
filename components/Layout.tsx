@@ -14,7 +14,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    logout();
+    if(confirm){
+       logout();
+    }
+    
   };
 
   const navItems = [

@@ -103,7 +103,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* 功能入口網格 - 重新設計為橫向佈局 */}
+      {/* 功能入口網格 */}
       <section className="grid grid-cols-1 gap-4">
         {menuItems.map((item, idx) => (
           <div
@@ -171,17 +171,6 @@ const Home: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3 mb-2">
-                 <div className="bg-white/5 rounded-xl border border-white/5 p-3 flex flex-col justify-center items-center">
-                    <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter">Event Access</span>
-                    <span className="text-xs font-bold text-white">LEVEL A-1</span>
-                 </div>
-                 <div className="bg-white/5 rounded-xl border border-white/5 p-3 flex flex-col justify-center items-center">
-                    <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter">EXP Points</span>
-                    <span className="text-xs font-bold text-poke-yellow">{user.score || 0} PTS</span>
-                 </div>
-              </div>
             </div>
 
             <div className="bg-black/30 border-t border-white/5 p-3 flex flex-wrap gap-2 justify-between items-center relative z-10">
@@ -191,9 +180,6 @@ const Home: React.FC = () => {
               
               {user.isAdmin && (
                 <div className="flex gap-2">
-                    <button onClick={() => navigate(AppRoute.TRIVIA_ADMIN)} className="text-[10px] font-bold text-purple-400/80 hover:text-purple-300 flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-purple-500/5 transition-all border border-purple-500/20">
-                      <ListOrdered size={14} /> TRIVIA MGMT
-                    </button>
                     <button onClick={() => setShowAdminModal(true)} className="text-[10px] font-bold text-yellow-500/80 hover:text-yellow-400 flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-yellow-500/5 transition-all border border-yellow-500/20">
                       <Settings size={14} /> AUTH SYSTEM
                     </button>
@@ -202,14 +188,13 @@ const Home: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-8 flex flex-col items-center text-center backdrop-blur-sm mb-6">
-            <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mb-4">
-                <Shield className="w-8 h-8 text-slate-600" />
+          <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4 flex items-center justify-between backdrop-blur-sm mb-6">
+            <div>
+              <h2 className="text-lg font-display font-bold text-white">未登入訪客</h2>
+              <p className="text-slate-400 text-[10px] font-mono uppercase tracking-widest opacity-60">Authentication Required</p>
             </div>
-            <h2 className="text-xl font-display font-bold text-white mb-2">未登入訪客</h2>
-            <p className="text-slate-400 text-xs mb-8 max-w-[200px] leading-relaxed font-mono uppercase tracking-widest opacity-60">Authentication Required for Access</p>
-            <Button onClick={() => setShowLogin(true)} variant="primary" className="shadow-[0_0_20px_rgba(6,182,212,0.3)] min-w-[160px]">
-              <LogIn size={18} />
+            <Button onClick={() => setShowLogin(true)} variant="primary" className="py-2 px-4 text-xs h-auto min-w-[120px]">
+              <LogIn size={14} />
               登入系統
             </Button>
           </div>

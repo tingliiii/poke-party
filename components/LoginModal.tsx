@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Button from './Button';
-import { User as UserIcon, LogOut, Loader2, AlertCircle } from 'lucide-react';
+import { LogOut, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface LoginModalProps {
@@ -57,16 +57,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
             <LogOut size={20} className="rotate-180"/>
         </button>
 
-        <div className="p-8">
-            <div className="text-center mb-8">
-                <div className="w-16 h-16 mx-auto mb-4 relative">
-                    <div className="absolute inset-0 border-2 border-poke-cyan rounded-full animate-ping opacity-20"></div>
-                    <div className="relative bg-slate-800 rounded-full w-full h-full flex items-center justify-center border border-poke-cyan">
-                        <UserIcon className="text-poke-cyan" />
-                    </div>
-                </div>
-                <h3 className="text-2xl font-display font-bold text-white tracking-wide">訓練家登入</h3>
-                <p className="text-poke-cyan/60 text-xs font-mono mt-1 uppercase tracking-widest">Authentication Required</p>
+        <div className="p-6">
+            <div className="text-center mb-6">
+                <h3 className="text-xl font-display font-bold text-white tracking-wide">訓練家登入</h3>
+                <p className="text-poke-cyan/60 text-[10px] font-mono mt-1 uppercase tracking-widest">Authentication Required</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-6">
@@ -79,7 +73,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
                     </div>
                     <input 
                         type="text" 
-                        inputMode="numeric" // 在手機端觸發數字鍵盤
+                        inputMode="numeric" 
                         pattern="[0-9]*"
                         className={`w-full bg-black/30 text-center text-3xl font-display py-4 border-b-2 outline-none transition-all placeholder:text-slate-800 tracking-widest ${
                             error ? 'border-poke-red text-poke-red' : (isValidLength ? 'border-poke-cyan text-white' : 'border-slate-700 text-slate-400')
@@ -108,15 +102,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
                     >
                         {isProcessing ? <Loader2 className="animate-spin" /> : '登入系統'}
                     </Button>
-                    
-                    <p className="text-center text-[10px] text-slate-500 font-mono">
-                        VERSION 2.8.4 // SECURITY LEVEL A
-                    </p>
                 </div>
             </form>
         </div>
-        
-        <div className="absolute bottom-2 left-4 text-[10px] text-slate-800 font-mono pointer-events-none">SECURE_LINK_ACTIVE</div>
       </div>
     </div>
   );
