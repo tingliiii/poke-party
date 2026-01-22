@@ -1,7 +1,7 @@
 
 /**
  * 照片管理與投票核心服務
- * 處理所有與照片上傳、刪除及投票相關的資料庫與儲存操作
+ * 負責所有照片的上傳、刪除、即時訂閱以及 DressCode 投票機制
  */
 import { db, storage } from "./firebase";
 import { 
@@ -16,7 +16,10 @@ const VOTES_COLLECTION = 'votes';
 const USERS_COLLECTION = 'users';
 
 /**
- * 訂閱照片列表，依分類即時同步 (Real-time Listener)
+ * 訂閱指定分類的照片 (即時同步)
+ * @param category 'dresscode' | 'gallery'
+ * @param callback 成功回傳資料的回調
+ * @param onError 錯誤處理回調
  */
 export const subscribeToPhotos = (
   category: 'dresscode' | 'gallery', 
@@ -27,16 +30,21 @@ export const subscribeToPhotos = (
   
   return onSnapshot(q, (snapshot) => {
     const photos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Photo));
+    // 預設依時間降序排列 (最新在前)
     photos.sort((a, b) => b.timestamp - a.timestamp);
     callback(photos);
   }, (error) => {
+    console.error(`[PhotoService] 訂閱 ${category} 失敗:`, error);
     if (onError) onError(error);
   });
 };
 
 /**
- * 上傳照片至 Firebase Storage 並寫入 Firestore
- * 新增 Cache-Control 以優化瀏覽器讀取效能
+ * 上傳照片並設定瀏覽器快取
+ * @param file 圖片檔案
+ * @param category 分類
+ * @param uploader 上傳者資訊
+ * @param title 作品標題 (DressCode 使用)
  */
 export const uploadPhoto = async (
   file: File, 
@@ -50,10 +58,11 @@ export const uploadPhoto = async (
   
   const storageRef = ref(storage, filename);
   
-  // 定義 Metadata，加入 Cache-Control
+  // 設定 Firebase Storage Metadata：優化快取
   const metadata: SettableMetadata = {
     contentType: 'image/jpeg',
-    cacheControl: 'public, max-age=2592000', // 快取一個月 (秒數)
+    // public: 允許 CDN 與中間代理快取 | max-age: 2592000 秒 (30天)
+    cacheControl: 'public, max-age=2592000', 
     customMetadata: { 
       uploaderId: uploader.id, 
       uploaderName: uploader.name 
@@ -61,9 +70,12 @@ export const uploadPhoto = async (
   };
 
   try {
+    // 1. 上傳檔案
     const result = await uploadBytes(storageRef, file, metadata);
+    // 2. 取得公開網址
     const url = await getDownloadURL(result.ref);
 
+    // 3. 寫入資料庫
     await addDoc(collection(db, PHOTOS_COLLECTION), {
       url,
       storagePath: filename,
@@ -75,11 +87,14 @@ export const uploadPhoto = async (
       title: title || ''
     });
   } catch (error) {
-    console.error("[PhotoService] 上傳流程發生錯誤:", error);
+    console.error("[PhotoService] 上傳流程錯誤:", error);
     throw error;
   }
 };
 
+/**
+ * 執行 DressCode 投票 (使用 Transaction 確保資料一致性)
+ */
 export const voteForPhoto = async (photoId: string, userId: string) => {
   const userVoteRef = doc(db, VOTES_COLLECTION, userId);
   const photoRef = doc(db, PHOTOS_COLLECTION, photoId);
@@ -90,10 +105,12 @@ export const voteForPhoto = async (photoId: string, userId: string) => {
     const prevPhotoId = voteDoc.exists() ? voteDoc.data()?.photoId : null;
 
     if (prevPhotoId === photoId) {
+      // 取消原本的投票
       txn.delete(userVoteRef);
       txn.update(photoRef, { likes: increment(-1) });
       txn.update(userRef, { votedFor: null });
     } else {
+      // 更換投票：先減掉舊的，再加給新的
       if (prevPhotoId) {
         const oldRef = doc(db, PHOTOS_COLLECTION, prevPhotoId);
         txn.update(oldRef, { likes: increment(-1) });
@@ -105,12 +122,15 @@ export const voteForPhoto = async (photoId: string, userId: string) => {
   });
 };
 
+/**
+ * 刪除照片
+ */
 export const deletePhoto = async (photo: Photo) => {
   if (photo.storagePath) {
     try {
       await deleteObject(ref(storage, photo.storagePath));
     } catch (e) {
-      console.warn("[PhotoService] 無法在 Storage 中找到檔案，略過實體刪除");
+      console.warn("[PhotoService] 實體檔案已不存在，直接移除資料庫記錄");
     }
   }
   await deleteDoc(doc(db, PHOTOS_COLLECTION, photo.id));

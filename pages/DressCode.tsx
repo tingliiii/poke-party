@@ -86,6 +86,7 @@ const DressCode: React.FC = () => {
     setUploading(true);
     try {
       const compressedFile = await compressImage(selectedFile);
+      // 上傳時，uploaderName 帶入目前的使用者姓名或員編
       await DataService.uploadPhoto(compressedFile, 'dresscode', user, title);
       setTitle('');
       setShowUpload(false);
@@ -104,7 +105,7 @@ const DressCode: React.FC = () => {
         <div className="flex justify-between items-start relative z-10">
           <div>
             <h2 className="text-2xl font-display font-bold text-white text-glow">就決定是你了</h2>
-            <p className="text-poke-cyan/70 text-xs mt-1 font-mono tracking-wider">最強穿搭大賽</p>
+            <p className="text-poke-cyan/70 text-xs mt-1 font-mono tracking-wider">冒險者華麗大賽</p>
           </div>
           <Button variant={showUpload ? 'secondary' : 'primary'} className="text-xs py-2 px-4" onClick={() => user ? setShowUpload(!showUpload) : setShowLoginModal(true)}>
             {showUpload ? <XCircle size={16} /> : <Camera size={16} />}
@@ -170,7 +171,8 @@ const DressCode: React.FC = () => {
                       <div className="absolute bottom-2 left-2 max-w-[70%] pointer-events-none">
                         <p className="font-bold text-white text-[11px] truncate drop-shadow-lg">{photo.title || "無題作品"}</p>
                         <p className="text-[9px] text-gray-400 truncate flex items-center gap-1">
-                            <User size={8} className="text-poke-cyan"/> {photo.uploaderName}
+                            <User size={8} className="text-poke-cyan"/> 
+                            {photo.uploaderName || photo.uploaderId}
                         </p>
                       </div>
                     </div>

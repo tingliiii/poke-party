@@ -1,10 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-/* Fix: Explicitly import useNavigate from react-router-dom to resolve module export errors */
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, User } from '../types';
 import Button from '../components/Button';
-import { Camera, Grid, Map, LogIn, LogOut, User as UserIcon, Shield, Zap, Settings, UserPlus, X, Loader2, Trash2, ListOrdered, Award, Activity, Plus, ChevronRight } from 'lucide-react';
+import { 
+  Camera, Grid, Map, LogIn, LogOut, User as UserIcon, 
+  Shield, Zap, Settings, UserPlus, X, Loader2, 
+  Trash2, Award, Activity, Plus, ChevronRight, Edit3, Save 
+} from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
 import * as UserService from '../services/userService';
@@ -13,12 +16,13 @@ const Home: React.FC = () => {
   const { user, logout } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showNameEditModal, setShowNameEditModal] = useState(false);
+  const [newName, setNewName] = useState('');
   const [newStaffId, setNewStaffId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [adminList, setAdminList] = useState<User[]>([]);
   const navigate = useNavigate();
 
-  // 監聽管理員名單
   useEffect(() => {
     if (showAdminModal && user?.isAdmin) {
       const unsub = UserService.subscribeToAdmins(setAdminList);
@@ -33,10 +37,22 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleUpdateName = async () => {
+    if (!user || !newName.trim()) return;
+    setIsProcessing(true);
+    try {
+      await UserService.updateUserName(user.id, newName);
+      setShowNameEditModal(false);
+    } catch (e) {
+      alert("姓名更新失敗");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleAddStaff = async () => {
     const targetId = newStaffId.trim().toUpperCase();
     if (!targetId) return;
-    
     setIsProcessing(true);
     try {
       await UserService.setAdminStatus(targetId, true);
@@ -126,18 +142,15 @@ const Home: React.FC = () => {
                 <p className="text-slate-400 text-[10px] mt-0.5 font-mono tracking-widest uppercase opacity-70">{item.subtitle}</p>
             </div>
             <ChevronRight className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" size={20} />
-            
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
           </div>
         ))}
       </section>
 
-      {/* 使用者資訊區 (Trainer Identity) */}
+      {/* 使用者資訊區 */}
       <section className="animate-fade-in-up">
         {user ? (
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl shadow-2xl group mb-6">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 opacity-50"></div>
-            <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-poke-cyan/10 blur-[80px] rounded-full pointer-events-none"></div>
             
             <div className="relative p-6">
               <div className="flex items-center gap-6 mb-6">
@@ -157,11 +170,21 @@ const Home: React.FC = () => {
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2 mb-1">
                       <Award size={14} className="text-poke-yellow" />
-                      <span className="text-gray-400 text-[10px] font-mono tracking-[0.2em] uppercase">Registered Trainer</span>
+                      <span className="text-gray-400 text-[10px] font-mono tracking-[0.2em] uppercase">Trainer Identity</span>
                     </div>
-                    <h1 className="text-3xl font-display font-bold text-white tracking-wide text-glow truncate">
-                      {user.name}
-                    </h1>
+                    
+                    <div className="flex items-center gap-2 group/name">
+                        <h1 className="text-3xl font-display font-bold text-white tracking-wide text-glow truncate">
+                          {user.name || user.id}
+                        </h1>
+                        <button 
+                            onClick={() => { setNewName(user.name || ''); setShowNameEditModal(true); }}
+                            className="p-1.5 rounded-full bg-white/5 text-slate-500 hover:text-poke-cyan hover:bg-poke-cyan/10 transition-all opacity-0 group-hover:opacity-100"
+                        >
+                            <Edit3 size={16} />
+                        </button>
+                    </div>
+
                     <div className="mt-2 flex items-center gap-2">
                         <div className="bg-poke-cyan/10 border border-poke-cyan/30 px-2 py-0.5 rounded text-[10px] font-mono text-poke-cyan">
                             ID: {user.id}
@@ -182,11 +205,9 @@ const Home: React.FC = () => {
               </button>
               
               {user.isAdmin && (
-                <div className="flex gap-2">
-                    <button onClick={() => setShowAdminModal(true)} className="text-[10px] font-bold text-yellow-500/80 hover:text-yellow-400 flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-yellow-500/5 transition-all border border-yellow-500/20">
-                      <Settings size={14} /> AUTH SYSTEM
-                    </button>
-                </div>
+                <button onClick={() => setShowAdminModal(true)} className="text-[10px] font-bold text-yellow-500/80 hover:text-yellow-400 flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-yellow-500/5 transition-all border border-yellow-500/20">
+                  <Settings size={14} /> AUTH SYSTEM
+                </button>
               )}
             </div>
           </div>
@@ -203,6 +224,37 @@ const Home: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* 修改姓名 Modal */}
+      {showNameEditModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 animate-fade-in">
+          <div className="bg-slate-900 w-full max-w-xs rounded-2xl border border-poke-cyan/30 p-6 shadow-2xl space-y-6">
+            <div className="text-center">
+                <h3 className="text-xl font-display font-bold text-white tracking-wide">修改姓名</h3>
+                <p className="text-poke-cyan/50 text-[10px] font-mono mt-1 uppercase">Update Trainer Nickname</p>
+            </div>
+            
+            <div className="space-y-2">
+                <label className="text-[10px] font-mono text-slate-500 uppercase">新姓名 (上限 10 字)</label>
+                <input
+                    className="w-full bg-black/30 border border-slate-700 rounded-lg p-3 text-white text-center focus:border-poke-cyan outline-none font-bold"
+                    placeholder="輸入新姓名"
+                    value={newName}
+                    onChange={e => setNewName(e.target.value.slice(0, 10))}
+                    autoFocus
+                />
+            </div>
+
+            <div className="flex gap-2">
+                <Button variant="outline" fullWidth onClick={() => setShowNameEditModal(false)}>取消</Button>
+                <Button fullWidth onClick={handleUpdateName} disabled={isProcessing || !newName.trim()}>
+                    {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                    儲存
+                </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 管理員授權 Modal */}
       {showAdminModal && (
@@ -244,7 +296,7 @@ const Home: React.FC = () => {
                                     <Shield size={14} />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-white">{admin.name}</p>
+                                    <p className="text-sm font-bold text-white">{admin.name || admin.id}</p>
                                     <p className="text-[10px] font-mono text-slate-500">ID: {admin.id}</p>
                                 </div>
                             </div>
@@ -258,9 +310,6 @@ const Home: React.FC = () => {
                             )}
                         </div>
                     ))}
-                    {adminList.length === 0 && (
-                        <p className="text-center py-8 text-slate-600 text-xs font-mono">NO ADMIN RECORDS FOUND</p>
-                    )}
                 </div>
               </div>
             </div>
