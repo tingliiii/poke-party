@@ -88,36 +88,37 @@ const Lightbox: React.FC<LightboxProps> = ({ photos, initialIndex, onClose }) =>
         </div>
       )}
       
-      {/* 底部極簡資訊橫條：單行設計 */}
-      <div className="absolute bottom-0 left-0 right-0 z-[120] pointer-events-none">
-        <div className="w-full bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pb-6 px-6">
-            <div className="flex items-center justify-center gap-2 text-white/70 text-[10px] font-mono tracking-wider backdrop-blur-md bg-black/20 py-2 px-4 rounded-full border border-white/5 w-fit mx-auto">
-                <span className="flex items-center gap-1">
-                    <User size={10} className="text-poke-cyan"/> {photo.uploaderId}
-                </span>
-                
-                <span className="text-white/20">•</span>
-                
-                {photo.title && (
-                    <>
-                        <span className="font-bold text-white/90 truncate max-w-[120px]">{photo.title}</span>
-                        <span className="text-white/20">•</span>
-                    </>
-                )}
-                
-                <span className="flex items-center gap-1 opacity-60">
-                    <Clock size={10}/> {new Date(photo.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+      {/* 底部極簡單行資訊橫條 */}
+      <div className="absolute bottom-6 left-0 right-0 z-[120] flex justify-center pointer-events-none px-6">
+        <div className="flex items-center gap-2 text-white/80 text-[10px] font-mono tracking-wider backdrop-blur-xl bg-black/30 py-2.5 px-5 rounded-full border border-white/10 pointer-events-auto">
+            <span className="flex items-center gap-1.5">
+                <User size={10} className="text-poke-cyan"/>
+                <span className="font-bold">{photo.uploaderId}</span>
+            </span>
+            
+            <span className="text-white/20">•</span>
+            
+            {photo.title && (
+                <>
+                    <span className="text-white/90 truncate max-w-[100px]">{photo.title}</span>
+                    <span className="text-white/20">•</span>
+                </>
+            )}
+            
+            <span className="flex items-center gap-1.5 opacity-70">
+                <Clock size={10}/>
+                <span>{new Date(photo.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </span>
 
-                {!isGallery && (
-                    <>
-                        <span className="text-white/20">•</span>
-                        <span className="flex items-center gap-1 text-poke-red font-bold">
-                            <Heart size={10} fill="currentColor"/> {photo.likes}
-                        </span>
-                    </>
-                )}
-            </div>
+            {!isGallery && (
+                <>
+                    <span className="text-white/20">•</span>
+                    <span className="flex items-center gap-1.5 text-poke-red font-bold">
+                        <Heart size={10} fill="currentColor"/>
+                        <span>{photo.likes}</span>
+                    </span>
+                </>
+            )}
         </div>
       </div>
     </div>
