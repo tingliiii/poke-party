@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+/* Fix: Explicitly import useNavigate from react-router-dom to resolve module export errors */
 import { useNavigate } from 'react-router-dom';
 import { AppRoute, User } from '../types';
 import Button from '../components/Button';

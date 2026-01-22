@@ -1,5 +1,6 @@
 
 import React from 'react';
+/* Fix: Explicitly import useLocation and Link from react-router-dom to resolve module export errors */
 import { useLocation, Link } from 'react-router-dom';
 import { AppRoute } from '../types';
 import { Home, Camera, Grid, Map, Zap, LogOut } from 'lucide-react';

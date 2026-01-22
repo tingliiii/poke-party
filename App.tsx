@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+/* Fix: Explicitly import HashRouter, Routes, Route, and Navigate from react-router-dom to resolve module export errors */
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import DressCode from './pages/DressCode';
@@ -14,7 +15,7 @@ import { AuthProvider } from './context/AuthContext';
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
+      <HashRouter>
         <Layout>
           <Routes>
             <Route path={AppRoute.HOME} element={<Home />} />
@@ -26,7 +27,7 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to={AppRoute.HOME} replace />} />
           </Routes>
         </Layout>
-      </Router>
+      </HashRouter>
     </AuthProvider>
   );
 };

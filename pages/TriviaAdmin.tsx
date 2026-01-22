@@ -5,6 +5,7 @@ import * as DataService from '../services/dataService';
 import Button from '../components/Button';
 import { Plus, Trash2, ListOrdered, Clock, CheckCircle2, ShieldAlert, ChevronLeft, Save, Loader2, Edit, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+/* Fix: Explicitly import useNavigate from react-router-dom to resolve module export errors */
 import { useNavigate } from 'react-router-dom';
 
 const TriviaAdmin: React.FC = () => {
