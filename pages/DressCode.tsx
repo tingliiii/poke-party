@@ -5,8 +5,7 @@ import * as DataService from '../services/dataService';
 import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import Lightbox from '../components/Lightbox';
-// Fix: Import User icon from lucide-react to resolve "Cannot find name 'User'" error
-import { Upload, Trash2, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,7 +26,6 @@ const DressCode: React.FC = () => {
   const [viewingIndex, setViewingIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // 分頁狀態
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -64,7 +62,6 @@ const DressCode: React.FC = () => {
     return isDescending ? -result : result;
   });
 
-  // 分頁邏輯
   const totalPages = Math.ceil(sortedPhotos.length / PHOTOS_PER_PAGE);
   const paginatedPhotos = sortedPhotos.slice((currentPage - 1) * PHOTOS_PER_PAGE, currentPage * PHOTOS_PER_PAGE);
 
@@ -124,7 +121,7 @@ const DressCode: React.FC = () => {
                   <input ref={fileInputRef} type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileSelect} required />
                   <div className="flex flex-col items-center gap-2 text-slate-400">
                     <Upload size={24} />
-                    <span className="text-xs font-mono">選擇參賽照片</span>
+                    <span className="text-xs font-mono uppercase tracking-widest">Select Image</span>
                   </div>
                 </>
               ) : (
@@ -139,7 +136,7 @@ const DressCode: React.FC = () => {
         )}
         
         <div className="flex justify-between items-center border-t border-white/5 pt-3">
-          <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Sorting Mode</span>
+          <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Ranking Filter</span>
           <div className="flex bg-slate-900/80 rounded-lg p-1 border border-slate-700">
             {[{ id: 'likes', label: '熱門', icon: Heart }, { id: 'time', label: '時間', icon: Clock }, { id: 'id', label: '員編', icon: SortAsc }].map((btn) => (
               <button key={btn.id} onClick={() => handleSortChange(btn.id as any)} className={`flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold transition-all ${sortBy === btn.id ? 'bg-poke-cyan text-black shadow-glow' : 'text-slate-400'}`}>
@@ -159,7 +156,6 @@ const DressCode: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               {paginatedPhotos.map((photo, index) => {
                 const isVoted = user?.votedFor === photo.id;
-                const isOwner = user?.id === photo.uploaderId || user?.isAdmin;
                 const globalIndex = (currentPage - 1) * PHOTOS_PER_PAGE + index;
 
                 return (
@@ -167,12 +163,12 @@ const DressCode: React.FC = () => {
                     <div className="aspect-[4/5] bg-slate-950 relative cursor-zoom-in" onClick={() => setViewingIndex(globalIndex)}>
                       <img src={photo.url} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-500" loading="lazy" />
                       {isVoted && <div className="absolute top-2 left-2 bg-poke-red text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg border border-white/20">我的最愛</div>}
-                      <div className="absolute bottom-2 right-2 text-right">
+                      <div className="absolute bottom-2 right-2 text-right pointer-events-none">
                         <span className="block text-xl font-display font-bold text-white text-glow leading-none">{photo.likes}</span>
-                        <span className="text-[7px] text-slate-400 font-mono uppercase">Likes</span>
+                        <span className="text-[7px] text-slate-400 font-mono uppercase">Votes</span>
                       </div>
-                      <div className="absolute bottom-2 left-2 max-w-[70%]">
-                        <p className="font-bold text-white text-xs truncate drop-shadow-lg">{photo.title || "無題作品"}</p>
+                      <div className="absolute bottom-2 left-2 max-w-[70%] pointer-events-none">
+                        <p className="font-bold text-white text-[11px] truncate drop-shadow-lg">{photo.title || "無題作品"}</p>
                         <p className="text-[9px] text-gray-400 truncate flex items-center gap-1">
                             <User size={8} className="text-poke-cyan"/> {photo.uploaderName}
                         </p>
@@ -189,25 +185,24 @@ const DressCode: React.FC = () => {
               })}
             </div>
 
-            {/* 分頁控制器 */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-4 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-center gap-4 pt-6 border-t border-white/5">
                     <button 
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        className="p-3 rounded-full bg-slate-800 border border-slate-700 text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-90"
+                        className="p-3 rounded-xl bg-slate-800 border border-slate-700 text-white disabled:opacity-20 transition-all active:scale-90"
                     >
-                        <ChevronLeft size={24} />
+                        <ChevronLeft size={20} />
                     </button>
-                    <div className="text-xs font-mono font-bold text-poke-cyan bg-poke-cyan/10 px-6 py-2 rounded-full border border-poke-cyan/20 shadow-glow">
-                        PAGE {currentPage} / {totalPages}
+                    <div className="text-xs font-mono font-bold text-poke-cyan bg-poke-cyan/10 px-6 py-2 rounded-full border border-poke-cyan/20">
+                        {currentPage} / {totalPages}
                     </div>
                     <button 
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        className="p-3 rounded-full bg-slate-800 border border-slate-700 text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-90"
+                        className="p-3 rounded-xl bg-slate-800 border border-slate-700 text-white disabled:opacity-20 transition-all active:scale-90"
                     >
-                        <ChevronRight size={24} />
+                        <ChevronRight size={20} />
                     </button>
                 </div>
             )}

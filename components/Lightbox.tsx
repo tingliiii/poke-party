@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, User, Heart, Clock } from 'lucide-react';
 import { Photo } from '../types';
 
 interface LightboxProps {
@@ -39,83 +39,83 @@ const Lightbox: React.FC<LightboxProps> = ({ photos, initialIndex, onClose }) =>
 
   return (
     <div 
-      className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-0 select-none animate-fade-in"
+      /* 強制移除所有 margin 以修復 space-y 造成的滿版偏移問題 */
+      className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-0 select-none animate-fade-in !m-0"
       onClick={onClose}
     >
-      {/* 頂部控制列 */}
+      {/* 頂部導覽列：頁碼與關閉按鈕 */}
       <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-[120] pointer-events-none">
-        <div className="text-white text-[10px] font-mono bg-black/50 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
+        <div className="text-white text-[10px] font-mono bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/5">
           {currentIndex + 1} / {photos.length}
         </div>
         <button 
           onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="p-3 bg-black/50 hover:bg-black/70 rounded-full text-white border border-white/10 backdrop-blur-md pointer-events-auto transition-all active:scale-90"
+          className="p-2 bg-black/40 hover:bg-black/60 rounded-full text-white/80 border border-white/5 backdrop-blur-sm pointer-events-auto transition-all active:scale-90"
         >
-          <X size={28} />
+          <X size={20} />
         </button>
       </div>
 
-      {/* 滿版圖片顯示區域 */}
-      <div className="absolute inset-0 w-full h-full flex items-center justify-center !m-0 !p-0 overflow-hidden">
+      {/* 滿版圖片呈現區域 */}
+      <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden pointer-events-none">
         <img 
           src={photo.url} 
           alt={photo.title || "Preview"} 
-          className="w-full h-full object-contain !m-0 !p-0 pointer-events-none shadow-none" 
+          className="w-full h-full object-contain pointer-events-none !m-0 !p-0" 
         />
       </div>
 
-      {/* 點擊切換區域：左 */}
+      {/* 左右導航點擊熱區 (20% 寬度) */}
       {currentIndex > 0 && (
         <div 
-          className="absolute left-0 top-0 bottom-0 w-1/4 flex items-center justify-start pl-4 z-[115] cursor-pointer group"
-          onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+          className="absolute left-0 top-0 bottom-0 w-1/5 flex items-center justify-center z-[115] cursor-pointer group"
+          onClick={(e) => { e.stopPropagation(); handlePrev(e); }}
         >
-          <div className="p-3 bg-black/20 group-hover:bg-black/40 rounded-full text-white backdrop-blur-sm transition-all border border-white/5 opacity-80 group-active:scale-90">
-            <ChevronLeft size={40} />
+          <div className="p-3 bg-white/5 group-hover:bg-white/10 rounded-full text-white/40 group-hover:text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100">
+            <ChevronLeft size={32} />
           </div>
         </div>
       )}
 
-      {/* 點擊切換區域：右 */}
       {currentIndex < photos.length - 1 && (
         <div 
-          className="absolute right-0 top-0 bottom-0 w-1/4 flex items-center justify-end pr-4 z-[115] cursor-pointer group"
-          onClick={(e) => { e.stopPropagation(); handleNext(); }}
+          className="absolute right-0 top-0 bottom-0 w-1/5 flex items-center justify-center z-[115] cursor-pointer group"
+          onClick={(e) => { e.stopPropagation(); handleNext(e); }}
         >
-          <div className="p-3 bg-black/20 group-hover:bg-black/40 rounded-full text-white backdrop-blur-sm transition-all border border-white/5 opacity-80 group-active:scale-90">
-            <ChevronRight size={40} />
+          <div className="p-3 bg-white/5 group-hover:bg-white/10 rounded-full text-white/40 group-hover:text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100">
+            <ChevronRight size={32} />
           </div>
         </div>
       )}
       
-      {/* 底部資訊面板 */}
-      <div className="absolute bottom-10 left-0 right-0 z-[120] flex justify-center pointer-events-none px-6">
-        <div className="w-full max-w-sm bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 pointer-events-auto shadow-none">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-poke-cyan/20 flex items-center justify-center border border-white/10 text-poke-cyan shrink-0">
-                    <User size={20} />
-                </div>
-                <div className="min-w-0 flex-1">
-                    <p className="text-white text-sm font-bold truncate">
-                        {isGallery ? `訓練家 ${photo.uploaderId}` : photo.uploaderName}
-                    </p>
-                    <p className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">
-                        {isGallery ? "ID CHECKED" : `STAFF ID: ${photo.uploaderId}`}
-                    </p>
-                </div>
-            </div>
-            
-            {!isGallery && photo.title && (
-                <h3 className="text-poke-cyan text-base font-bold mt-3 font-display tracking-wide truncate">{photo.title}</h3>
-            )}
-            
-            <div className="flex justify-between items-center mt-3 border-t border-white/5 pt-2 text-slate-500 text-[10px] font-mono uppercase">
-                <span>{new Date(photo.timestamp).toLocaleString()}</span>
+      {/* 底部極簡資訊橫條：單行設計 */}
+      <div className="absolute bottom-0 left-0 right-0 z-[120] pointer-events-none">
+        <div className="w-full bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pb-6 px-6">
+            <div className="flex items-center justify-center gap-2 text-white/70 text-[10px] font-mono tracking-wider backdrop-blur-md bg-black/20 py-2 px-4 rounded-full border border-white/5 w-fit mx-auto">
+                <span className="flex items-center gap-1">
+                    <User size={10} className="text-poke-cyan"/> {photo.uploaderId}
+                </span>
+                
+                <span className="text-white/20">•</span>
+                
+                {photo.title && (
+                    <>
+                        <span className="font-bold text-white/90 truncate max-w-[120px]">{photo.title}</span>
+                        <span className="text-white/20">•</span>
+                    </>
+                )}
+                
+                <span className="flex items-center gap-1 opacity-60">
+                    <Clock size={10}/> {new Date(photo.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+
                 {!isGallery && (
-                    <div className="flex items-center gap-1 text-poke-cyan font-bold">
-                        <span className="text-xs">{photo.likes}</span>
-                        <span className="text-[8px] tracking-tighter">LIKES</span>
-                    </div>
+                    <>
+                        <span className="text-white/20">•</span>
+                        <span className="flex items-center gap-1 text-poke-red font-bold">
+                            <Heart size={10} fill="currentColor"/> {photo.likes}
+                        </span>
+                    </>
                 )}
             </div>
         </div>
