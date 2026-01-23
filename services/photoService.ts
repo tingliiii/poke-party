@@ -59,10 +59,6 @@ export const subscribeToPhotos = (
 
 /**
  * 上傳照片並設定瀏覽器快取
- * @param file 圖片檔案
- * @param category 分類
- * @param uploader 上傳者資訊
- * @param title 作品標題 (DressCode 使用)
  */
 export const uploadPhoto = async (
   file: File, 
@@ -78,29 +74,26 @@ export const uploadPhoto = async (
   
   const storageRef = ref(storage, filename);
   
-  // 設定 Firebase Storage Metadata：優化快取
+  // 設定 Metadata
   const metadata: SettableMetadata = {
     contentType: file.type,
-    // public: 允許 CDN 與中間代理快取 | max-age: 2592000 秒 (30天)
     cacheControl: 'public, max-age=2592000', 
     customMetadata: { 
       uploaderId: uploader.id, 
-      uploaderName: uploader.name 
+      uploaderName: uploader.name || uploader.id // 優先使用姓名，無則使用員編
     }
   };
 
   try {
-    // 1. 上傳檔案
     const result = await uploadBytes(storageRef, file, metadata);
-    // 2. 取得公開網址
     const url = await getDownloadURL(result.ref);
 
-    // 3. 寫入資料庫
+    // 寫入資料庫：uploaderName 確保有值
     await addDoc(collection(db, PHOTOS_COLLECTION), {
       url,
       storagePath: filename,
       uploaderId: uploader.id,
-      uploaderName: uploader.name,
+      uploaderName: uploader.name || uploader.id, // 重要：確保縮圖顯示有名稱可抓
       timestamp,
       likes: 0,
       category,
@@ -113,7 +106,7 @@ export const uploadPhoto = async (
 };
 
 /**
- * 執行 DressCode 投票 (使用 Transaction 確保資料一致性)
+ * 執行 DressCode 投票
  */
 export const voteForPhoto = async (photoId: string, userId: string) => {
   const userVoteRef = doc(db, VOTES_COLLECTION, userId);
@@ -125,12 +118,10 @@ export const voteForPhoto = async (photoId: string, userId: string) => {
     const prevPhotoId = voteDoc.exists() ? voteDoc.data()?.photoId : null;
 
     if (prevPhotoId === photoId) {
-      // 取消原本的投票
       txn.delete(userVoteRef);
       txn.update(photoRef, { likes: increment(-1) });
       txn.update(userRef, { votedFor: null });
     } else {
-      // 更換投票：先減掉舊的，再加給新的
       if (prevPhotoId) {
         const oldRef = doc(db, PHOTOS_COLLECTION, prevPhotoId);
         txn.update(oldRef, { likes: increment(-1) });
@@ -150,7 +141,7 @@ export const deletePhoto = async (photo: Photo) => {
     try {
       await deleteObject(ref(storage, photo.storagePath));
     } catch (e) {
-      console.warn("[PhotoService] 實體檔案已不存在，直接移除資料庫記錄");
+      console.warn("[PhotoService] 實體檔案已不存在");
     }
   }
   await deleteDoc(doc(db, PHOTOS_COLLECTION, photo.id));

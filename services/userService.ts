@@ -1,9 +1,13 @@
 
 import { db } from "./firebase";
-import { doc, getDoc, setDoc, updateDoc, onSnapshot, query, collection, where } from "firebase/firestore";
+import { 
+  doc, getDoc, setDoc, updateDoc, onSnapshot, query, 
+  collection, where, getDocs, writeBatch 
+} from "firebase/firestore";
 import { User } from "../types";
 
 const USERS_COLLECTION = 'users';
+const PHOTOS_COLLECTION = 'photos';
 const ADMIN_IDS = ['24778', '000', 'ADMIN'];
 
 export const getUserRef = (userId: string) => doc(db, USERS_COLLECTION, userId);
@@ -19,10 +23,9 @@ export const loginUser = async (employeeId: string): Promise<User> => {
   const isSuperAdmin = ADMIN_IDS.includes(cleanId);
 
   if (!snap.exists()) {
-    // 首次登入：不設定預設姓名，改由 UI 判斷顯示員編
     const newUser: User = {
       id: cleanId,
-      name: isSuperAdmin ? '系統管理員' : '', // 留空代表未設定自定義姓名
+      name: isSuperAdmin ? '系統管理員' : '', 
       isAdmin: isSuperAdmin,
       score: 0
     };
@@ -41,11 +44,33 @@ export const loginUser = async (employeeId: string): Promise<User> => {
 };
 
 /**
- * 更新使用者自定義姓名
+ * 更新使用者姓名，並同步更新所有已上傳照片的顯示名稱
  */
 export const updateUserName = async (userId: string, newName: string) => {
+  const batch = writeBatch(db);
+  const trimmedName = newName.trim();
+
+  // 1. 更新使用者主表
   const userRef = getUserRef(userId);
-  await updateDoc(userRef, { name: newName.trim() });
+  batch.update(userRef, { name: trimmedName });
+
+  // 2. 查詢該使用者上傳的所有照片並加入批次更新
+  const photosRef = collection(db, PHOTOS_COLLECTION);
+  const q = query(photosRef, where('uploaderId', '==', userId));
+  
+  try {
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((photoDoc) => {
+      batch.update(photoDoc.ref, { uploaderName: trimmedName });
+    });
+
+    // 3. 執行批次寫入
+    await batch.commit();
+    console.log(`[UserService] 姓名已同步更新至 ${querySnapshot.size} 張照片`);
+  } catch (error) {
+    console.error("[UserService] 同步更新姓名失敗:", error);
+    throw error;
+  }
 };
 
 export const subscribeToUser = (userId: string, callback: (user: User | null) => void) => {
