@@ -4,4 +4,3 @@
 export * from './userService';
 export * from './photoService';
 export * from './configService';
-export * from './triviaService';

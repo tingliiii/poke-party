@@ -8,7 +8,7 @@ import { User } from "../types";
 
 const USERS_COLLECTION = 'users';
 const PHOTOS_COLLECTION = 'photos';
-const ADMIN_IDS = ['24778', '000', 'ADMIN'];
+const ADMIN_IDS = ['24778'];
 
 export const getUserRef = (userId: string) => doc(db, USERS_COLLECTION, userId);
 
@@ -26,8 +26,7 @@ export const loginUser = async (employeeId: string): Promise<User> => {
     const newUser: User = {
       id: cleanId,
       name: isSuperAdmin ? '系統管理員' : '', 
-      isAdmin: isSuperAdmin,
-      score: 0
+      isAdmin: isSuperAdmin
     };
     await setDoc(userRef, newUser);
     return newUser;

@@ -4,7 +4,6 @@
  */
 
 export interface FirebaseConfig {
-  apiKey: string;
   authDomain: string;
   projectId: string;
   storageBucket: string;
@@ -26,7 +25,6 @@ export interface User {
   isAdmin?: boolean;
   avatar?: string;
   votedFor?: string;
-  score?: number;
 }
 
 export interface Photo {
@@ -41,26 +39,9 @@ export interface Photo {
   storagePath?: string;
 }
 
-export interface TriviaQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  timeLimit: number;
-}
-
-export interface TriviaGameState {
-  status: 'LOBBY' | 'QUESTION' | 'REVEAL' | 'LEADERBOARD' | 'ENDED';
-  currentQuestionIndex: number;
-  questionStartTime?: number;
-  answers: Record<string, { answerIdx: number; timeTaken: number; score: number }>;
-}
-
 export enum AppRoute {
   HOME = '/',
   DRESSCODE = '/dresscode',
   GALLERY = '/gallery',
   SEATING = '/seating',
-  TRIVIA = '/trivia',
-  TRIVIA_ADMIN = '/trivia-admin',
 }

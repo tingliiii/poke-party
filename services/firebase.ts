@@ -8,7 +8,6 @@ import { getStorage } from "firebase/storage";
 import { FirebaseConfig } from "../types";
 
 const firebaseConfig: FirebaseConfig = {
-  apiKey: "",
   authDomain: "pokeparty-f7572.firebaseapp.com",
   projectId: "pokeparty-f7572",
   storageBucket: "pokeparty-f7572.firebasestorage.app",

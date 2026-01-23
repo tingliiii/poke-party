@@ -7,8 +7,6 @@ import Home from './pages/Home';
 import DressCode from './pages/DressCode';
 import Gallery from './pages/Gallery';
 import Seating from './pages/Seating';
-import Trivia from './pages/Trivia';
-import TriviaAdmin from './pages/TriviaAdmin';
 import { AppRoute } from './types';
 import { AuthProvider } from './context/AuthContext';
 
@@ -22,8 +20,6 @@ const App: React.FC = () => {
             <Route path={AppRoute.DRESSCODE} element={<DressCode />} />
             <Route path={AppRoute.GALLERY} element={<Gallery />} />
             <Route path={AppRoute.SEATING} element={<Seating />} />
-            <Route path={AppRoute.TRIVIA} element={<Trivia />} />
-            <Route path={AppRoute.TRIVIA_ADMIN} element={<TriviaAdmin />} />
             <Route path="*" element={<Navigate to={AppRoute.HOME} replace />} />
           </Routes>
         </Layout>
