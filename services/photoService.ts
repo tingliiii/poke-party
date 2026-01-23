@@ -16,6 +16,24 @@ const VOTES_COLLECTION = 'votes';
 const USERS_COLLECTION = 'users';
 
 /**
+ * 取得縮圖的 Storage 路徑 (配合 Firebase Resize Extension 預設規則)
+ * @param originalPath 原圖在 Storage 的路徑 (例如: dresscode/abc.jpg)
+ * @param size 縮圖尺寸 (需與 Extension 設定一致，預設 200x200)
+ */
+export const getThumbnailPath = (originalPath: string | undefined, size: string = '200x200') => {
+  if (!originalPath) return null;
+
+  const lastDotIndex = originalPath.lastIndexOf('.');
+  if (lastDotIndex === -1) return originalPath;
+
+  const basePath = originalPath.substring(0, lastDotIndex);
+  const ext = originalPath.substring(lastDotIndex);
+  
+  // 規則: 原檔名_尺寸.副檔名
+  return `${basePath}_${size}${ext}`;
+};
+
+/**
  * 訂閱指定分類的照片 (即時同步)
  * @param category 'dresscode' | 'gallery'
  * @param callback 成功回傳資料的回調
@@ -54,13 +72,15 @@ export const uploadPhoto = async (
 ) => {
   const timestamp = Date.now();
   const randomId = Math.random().toString(36).substring(2, 8);
-  const filename = `${category}/${timestamp}_${uploader.id}_${randomId}.jpg`;
+
+  const fileExtension = file.name.split('.').pop() || 'jpg';
+  const filename = `${category}/${timestamp}_${uploader.id}_${randomId}.${fileExtension}`;
   
   const storageRef = ref(storage, filename);
   
   // 設定 Firebase Storage Metadata：優化快取
   const metadata: SettableMetadata = {
-    contentType: 'image/jpeg',
+    contentType: file.type,
     // public: 允許 CDN 與中間代理快取 | max-age: 2592000 秒 (30天)
     cacheControl: 'public, max-age=2592000', 
     customMetadata: { 

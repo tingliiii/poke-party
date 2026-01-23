@@ -5,6 +5,7 @@ import * as DataService from '../services/dataService';
 import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import Lightbox from '../components/Lightbox';
+import PhotoCard from '../components/PhotoCard';
 import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
@@ -162,13 +163,17 @@ const DressCode: React.FC = () => {
                 return (
                   <div key={photo.id} className={`glass-card rounded-xl overflow-hidden group border-2 border-transparent transition-all ${isVoted ? 'border-poke-red shadow-glow-red' : 'hover:border-poke-cyan/50'}`}>
                     <div className="aspect-[4/5] bg-slate-950 relative cursor-zoom-in" onClick={() => setViewingIndex(globalIndex)}>
-                      <img src={photo.url} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-500" loading="lazy" />
-                      {isVoted && <div className="absolute top-2 left-2 bg-poke-red text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg border border-white/20">我的最愛</div>}
-                      <div className="absolute bottom-2 right-2 text-right pointer-events-none">
+                      <PhotoCard 
+                        photo={photo} 
+                        size="200x200" 
+                        className="w-full h-full opacity-90 group-hover:opacity-100 transition-all duration-500"
+                      />
+                      {isVoted && <div className="absolute top-2 left-2 bg-poke-red text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg border border-white/20 z-10">我的最愛</div>}
+                      <div className="absolute bottom-2 right-2 text-right pointer-events-none z-10">
                         <span className="block text-xl font-display font-bold text-white text-glow leading-none">{photo.likes}</span>
                         <span className="text-[7px] text-slate-400 font-mono uppercase">Votes</span>
                       </div>
-                      <div className="absolute bottom-2 left-2 max-w-[70%] pointer-events-none">
+                      <div className="absolute bottom-2 left-2 max-w-[70%] pointer-events-none z-10">
                         <p className="font-bold text-white text-[11px] truncate drop-shadow-lg">{photo.title || "無題作品"}</p>
                         <p className="text-[9px] text-gray-400 truncate flex items-center gap-1">
                             <User size={8} className="text-poke-cyan"/> 

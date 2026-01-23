@@ -5,6 +5,7 @@ import * as DataService from '../services/dataService';
 import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import Lightbox from '../components/Lightbox';
+import PhotoCard from '../components/PhotoCard';
 import { Loader2, Plus, Lock, Image as ImageIcon, Trash2, Clock, SortAsc, User, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
@@ -143,10 +144,14 @@ const Gallery: React.FC = () => {
 
                     return (
                         <div key={photo.id} onClick={() => setViewingIndex(globalIndex)} className="relative aspect-square bg-slate-950 group cursor-zoom-in active:scale-95 transition-all overflow-hidden border border-white/5">
-                            <img src={photo.url} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" loading="lazy" />
+                            <PhotoCard 
+                                photo={photo} 
+                                size="200x200" 
+                                className="w-full h-full"
+                            />
                             
                             {/* 縮圖資訊遮罩 */}
-                            <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col pointer-events-none">
+                            <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col pointer-events-none z-10">
                                 <span className="text-[7px] text-emerald-400 font-mono font-bold truncate uppercase flex items-center gap-0.5">
                                     <User size={8}/> 
                                     {photo.uploaderName || photo.uploaderId}
@@ -159,7 +164,7 @@ const Gallery: React.FC = () => {
                             {isOwner && (
                                 <button 
                                     onClick={(e) => handleDelete(e, photo)} 
-                                    className="absolute top-1 right-1 bg-red-600/90 p-1.5 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    className="absolute top-1 right-1 bg-red-600/90 p-1.5 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity z-20"
                                     disabled={isThisDeleting}
                                 >
                                     {isThisDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
