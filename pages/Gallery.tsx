@@ -71,10 +71,11 @@ const Gallery: React.FC = () => {
     }
   };
 
-  // 刪除處理
+  // 刪除處理 (僅限管理員)
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
       e.stopPropagation();
-      if(!user || !confirm("確定要移除這張回憶嗎？")) return;
+      if(!user?.isAdmin) return; // 二次防護
+      if(!confirm("確定要以管理員身份移除這張回憶嗎？")) return;
       setDeletingId(photo.id);
       try { await DataService.deletePhoto(photo); }
       catch(e) { alert("刪除失敗"); }
@@ -138,7 +139,8 @@ const Gallery: React.FC = () => {
             {/* 照片網格：一排三張 */}
             <div className="grid grid-cols-3 gap-1">
                 {paginatedPhotos.map((photo, index) => {
-                    const isOwner = user?.id === photo.uploaderId || user?.isAdmin;
+                    // 修改權限邏輯：僅管理員可刪除
+                    const canDelete = user?.isAdmin;
                     const isThisDeleting = deletingId === photo.id;
                     const globalIndex = (currentPage - 1) * PHOTOS_PER_PAGE + index;
 
@@ -161,10 +163,10 @@ const Gallery: React.FC = () => {
                                 </span>
                             </div>
 
-                            {isOwner && (
+                            {canDelete && (
                                 <button 
                                     onClick={(e) => handleDelete(e, photo)} 
-                                    className="absolute top-1 right-1 bg-red-600/90 p-1.5 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                                    className="absolute top-1 right-1 bg-red-600/90 p-1.5 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-500"
                                     disabled={isThisDeleting}
                                 >
                                     {isThisDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}

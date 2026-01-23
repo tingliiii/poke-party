@@ -6,7 +6,7 @@ import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import Lightbox from '../components/Lightbox';
 import PhotoCard from '../components/PhotoCard';
-import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, User, Trash2 } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,6 +17,7 @@ const DressCode: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -100,6 +101,21 @@ const DressCode: React.FC = () => {
     }
   };
 
+  // 刪除處理 (僅限管理員)
+  const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
+    e.stopPropagation();
+    if (!user?.isAdmin) return;
+    if (!confirm("確定要以管理員身份移除這件作品嗎？此操作不可恢復。")) return;
+    setDeletingId(photo.id);
+    try {
+      await DataService.deletePhoto(photo);
+    } catch (e) {
+      alert("刪除失敗");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
       <div className="glass-panel p-5 rounded-2xl relative overflow-hidden space-y-4">
@@ -158,6 +174,8 @@ const DressCode: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               {paginatedPhotos.map((photo, index) => {
                 const isVoted = user?.votedFor === photo.id;
+                const canDelete = user?.isAdmin;
+                const isThisDeleting = deletingId === photo.id;
                 const globalIndex = (currentPage - 1) * PHOTOS_PER_PAGE + index;
 
                 return (
@@ -169,6 +187,18 @@ const DressCode: React.FC = () => {
                         className="w-full h-full opacity-90 group-hover:opacity-100 transition-all duration-500"
                       />
                       {isVoted && <div className="absolute top-2 left-2 bg-poke-red text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg border border-white/20 z-10">我的最愛</div>}
+                      
+                      {/* 管理員刪除按鈕 */}
+                      {canDelete && (
+                        <button 
+                          onClick={(e) => handleDelete(e, photo)}
+                          className="absolute top-2 right-2 bg-red-600/90 p-1.5 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-500 shadow-xl"
+                          disabled={isThisDeleting}
+                        >
+                          {isThisDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        </button>
+                      )}
+
                       <div className="absolute bottom-2 right-2 text-right pointer-events-none z-10">
                         <span className="block text-xl font-display font-bold text-white text-glow leading-none">{photo.likes}</span>
                         <span className="text-[7px] text-slate-400 font-mono uppercase">Votes</span>

@@ -59,7 +59,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
         <div className="p-6">
             <div className="text-center mb-6">
-                <h3 className="text-xl font-display font-bold text-white tracking-wide">訓練家登入</h3>
+                <h3 className="text-xl font-display font-bold text-white tracking-wide">請以員編登入</h3>
                 <p className="text-poke-cyan/60 text-[10px] font-mono mt-1 uppercase tracking-widest">Authentication Required</p>
             </div>
 
@@ -78,7 +78,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
                         className={`w-full bg-black/30 text-center text-3xl font-display py-4 border-b-2 outline-none transition-all placeholder:text-slate-800 tracking-widest ${
                             error ? 'border-poke-red text-poke-red' : (isValidLength ? 'border-poke-cyan text-white' : 'border-slate-700 text-slate-400')
                         }`}
-                        placeholder="00000"
+                        placeholder="請輸入員編"
                         autoFocus
                         value={employeeId}
                         onChange={handleInputChange}

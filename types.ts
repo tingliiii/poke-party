@@ -1,9 +1,9 @@
-
 /**
  * 寶可夢春酒系統核心型別定義
  */
 
 export interface FirebaseConfig {
+  apiKey: string;
   authDomain: string;
   projectId: string;
   storageBucket: string;

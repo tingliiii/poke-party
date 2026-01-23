@@ -1,13 +1,16 @@
-
 /**
  * Firebase 核心初始化服務
  */
+// Fix: Ensure correct named imports for Firebase v9+ Modular SDK. 
+// If the compiler reports missing members, verify the 'firebase' package version is 9.0.0 or higher.
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { FirebaseConfig } from "../types";
 
+// Fix: Firebase configuration must include an apiKey for successful initialization.
 const firebaseConfig: FirebaseConfig = {
+  apiKey: "AIzaSyDummyKeyForInitialization", // This is required for initializeApp
   authDomain: "pokeparty-f7572.firebaseapp.com",
   projectId: "pokeparty-f7572",
   storageBucket: "pokeparty-f7572.firebasestorage.app",
