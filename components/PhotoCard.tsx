@@ -1,4 +1,11 @@
 
+/**
+ * 高效能照片展示組件 (PhotoCard)
+ * 核心邏輯：Progressive Loading (漸進式載入)
+ * 1. 會先嘗試從 Firebase Storage 抓取經由擴展產生的 200x200 縮圖。
+ * 2. 如果縮圖還沒產生（剛上傳），則自動回退(Fall-back)顯示原始解析度的大圖。
+ * 這樣可以極大地節省首頁與相簿頁的載入流量。
+ */
 import React, { useState, useEffect } from 'react';
 import { storage } from '../services/firebase';
 import { ref, getDownloadURL } from 'firebase/storage';
@@ -11,68 +18,49 @@ interface PhotoCardProps {
   className?: string;
 }
 
-/**
- * 優化效能的照片顯示組件
- * 會先嘗試載入由 Firebase Resize Extension 產生的縮圖
- * 若縮圖尚未就緒或不存在，則回退顯示原始解析度照片
- */
 const PhotoCard: React.FC<PhotoCardProps> = ({ photo, size = '200x200', className = '' }) => {
-  // 初始顯示原圖 (或可以使用 placeholder)，非同步載入縮圖 URL
   const [imageUrl, setImageUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
-
     const fetchImage = async () => {
-      // 如果沒有儲存路徑，直接用原始 URL
+      // 若該照片沒有存儲路徑資訊，直接顯示原始網址
       if (!photo.storagePath) {
-        if (isMounted) {
-            setImageUrl(photo.url);
-            setLoading(false);
-        }
+        if (isMounted) { setImageUrl(photo.url); setLoading(false); }
         return;
       }
 
-      // 1. 計算縮圖路徑
+      // 計算預計的縮圖路徑
       const thumbPath = getThumbnailPath(photo.storagePath, size);
       
       try {
         if (thumbPath) {
-          // 2. 嘗試取得縮圖下載網址
           const thumbRef = ref(storage, thumbPath);
-          const url = await getDownloadURL(thumbRef);
-          if (isMounted) {
-              setImageUrl(url);
-              setLoading(false);
-          }
+          const url = await getDownloadURL(thumbRef); // 嘗試獲取縮圖下載網址
+          if (isMounted) { setImageUrl(url); setLoading(false); }
         } else {
-          throw new Error("Invalid thumbnail path");
+          throw new Error();
         }
       } catch (err) {
-        // 3. 縮圖讀取失敗 (可能 Extension 還在跑)，回退至原圖
-        if (isMounted) {
-            setImageUrl(photo.url);
-            setLoading(false);
-        }
+        // 若失敗，通常是因為縮圖還在伺服器處理中，則顯示原圖
+        if (isMounted) { setImageUrl(photo.url); setLoading(false); }
       }
     };
 
     fetchImage();
-    
     return () => { isMounted = false; };
-  }, [photo.id, photo.storagePath, photo.url, size]);
+  }, [photo.id, size]);
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-        {/* 背景 Placeholder 效果 */}
+        {/* 加載中的骨架屏效果 */}
         {loading && <div className="absolute inset-0 bg-slate-800 animate-pulse" />}
-        
         <img 
             src={imageUrl || photo.url} 
-            alt={photo.title || "Event Photo"} 
+            alt={photo.title || "Photo"} 
             className={`w-full h-full object-cover transition-opacity duration-300 ${loading ? 'opacity-0' : 'opacity-100'}`}
-            loading="lazy"
+            loading="lazy" // 瀏覽器原生的延遲載入技術
         />
     </div>
   );

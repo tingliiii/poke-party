@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Photo } from '../types';
 import * as DataService from '../services/dataService';

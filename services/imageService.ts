@@ -1,16 +1,15 @@
 
 /**
- * 圖片處理服務
- * 負責前端圖片壓縮與格式轉換
+ * 圖片處理服務 (Image Processing)
+ * 目的：在圖片上傳到雲端之前先在手機瀏覽器內進行壓縮。
+ * 優點：減少上傳流量、縮短等待時間、節省伺服器空間。
  */
 
 export const compressImage = async (file: File, maxSizeMB: number = 1): Promise<File> => {
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
-  console.log(`[ImageService] 開始處理: ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
-
-  // 1. 如果檔案本來就很小且格式正確，直接回傳
+  
+  // 如果檔案本身就小於 1MB，直接返回原檔，避免不必要的損耗
   if (file.size <= maxSizeBytes && /image\/(jpeg|jpg|png)/i.test(file.type)) {
-    console.log("[ImageService] 檔案已符合要求，略過壓縮");
     return file;
   }
 
@@ -22,10 +21,9 @@ export const compressImage = async (file: File, maxSizeMB: number = 1): Promise<
       img.src = e.target?.result as string;
     };
 
-    reader.onerror = () => reject(new Error("讀取圖片檔案失敗"));
-
     img.onload = () => {
-      // 2. 計算目標尺寸 (最大邊長 1920px，兼顧畫質與大小)
+      // 設定最大長邊為 1920px (高畫質標準)
+      // 若原圖更大，則依比例縮小以降低容量
       const MAX_DIMENSION = 1920; 
       let width = img.width;
       let height = img.height;
@@ -36,36 +34,21 @@ export const compressImage = async (file: File, maxSizeMB: number = 1): Promise<
         height = Math.round(height * ratio);
       }
 
-      // 3. 繪製到 Canvas
+      // 使用 Canvas 進行重繪
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        reject(new Error("瀏覽器不支援 Canvas"));
-        return;
-      }
+      if (!ctx) return reject(new Error("Canvas context failed"));
 
       ctx.drawImage(img, 0, 0, width, height);
 
-      // 4. 輸出壓縮 (嘗試 0.8 品質)
+      // 轉換為 JPEG 格式並設定品質為 0.8，這通常能減少 70% 以上的容量且肉眼難辨差異
       canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("圖片轉檔失敗"));
-          return;
-        }
-
-        console.log(`[ImageService] 壓縮後大小: ${(blob.size/1024).toFixed(1)} KB`);
+        if (!blob) return reject(new Error("Blob conversion failed"));
         
-        // 轉回 File 物件
         const newName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
-        const compressedFile = new File([blob], newName, {
-          type: 'image/jpeg',
-          lastModified: Date.now()
-        });
-
-        resolve(compressedFile);
+        resolve(new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() }));
       }, 'image/jpeg', 0.8);
     };
     

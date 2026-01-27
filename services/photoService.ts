@@ -1,7 +1,7 @@
 
 /**
- * 照片管理與投票核心服務
- * 負責所有照片的上傳、刪除、即時訂閱以及 DressCode 投票機制
+ * 照片管理與投票核心服務 (PhotoService)
+ * 封裝所有與照片相關的 Firestore 資料讀寫與 Storage 檔案操作
  */
 import { db, storage } from "./firebase";
 import { 
@@ -16,28 +16,23 @@ const VOTES_COLLECTION = 'votes';
 const USERS_COLLECTION = 'users';
 
 /**
- * 取得縮圖的 Storage 路徑 (配合 Firebase Resize Extension 預設規則)
- * @param originalPath 原圖在 Storage 的路徑 (例如: dresscode/abc.jpg)
- * @param size 縮圖尺寸 (需與 Extension 設定一致，預設 200x200)
+ * 取得縮圖路徑 (Thumbnail Logic)
+ * 配合 Firebase Resize Images 擴展，自動將原圖路徑映射到縮圖路徑
+ * 格式：[原目錄]/[檔名]_[尺寸].[副檔名]
  */
 export const getThumbnailPath = (originalPath: string | undefined, size: string = '200x200') => {
   if (!originalPath) return null;
-
   const lastDotIndex = originalPath.lastIndexOf('.');
   if (lastDotIndex === -1) return originalPath;
-
   const basePath = originalPath.substring(0, lastDotIndex);
   const ext = originalPath.substring(lastDotIndex);
-  
-  // 規則: 原檔名_尺寸.副檔名
   return `${basePath}_${size}${ext}`;
 };
 
 /**
- * 訂閱指定分類的照片 (即時同步)
- * @param category 'dresscode' | 'gallery'
- * @param callback 成功回傳資料的回調
- * @param onError 錯誤處理回調
+ * 即時訂閱照片流 (Real-time Stream)
+ * 使用 onSnapshot 建立長連接，當資料庫有任何變動時（如有人剛上傳或被刪除），
+ * UI 會立即自動更新，無需手動重新整理頁面。
  */
 export const subscribeToPhotos = (
   category: 'dresscode' | 'gallery', 
@@ -48,7 +43,7 @@ export const subscribeToPhotos = (
   
   return onSnapshot(q, (snapshot) => {
     const photos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Photo));
-    // 預設依時間降序排列 (最新在前)
+    // 依時間戳記排序，最新的照片排在最前面
     photos.sort((a, b) => b.timestamp - a.timestamp);
     callback(photos);
   }, (error) => {
@@ -58,7 +53,8 @@ export const subscribeToPhotos = (
 };
 
 /**
- * 上傳照片並設定瀏覽器快取
+ * 上傳照片與 MetaData 管理
+ * 此處設定了快取控制 (Cache-Control)，以優化前端圖片重複加載的效能。
  */
 export const uploadPhoto = async (
   file: File, 
@@ -68,19 +64,18 @@ export const uploadPhoto = async (
 ) => {
   const timestamp = Date.now();
   const randomId = Math.random().toString(36).substring(2, 8);
-
   const fileExtension = file.name.split('.').pop() || 'jpg';
   const filename = `${category}/${timestamp}_${uploader.id}_${randomId}.${fileExtension}`;
   
   const storageRef = ref(storage, filename);
   
-  // 設定 Metadata
+  // 設定 Storage 元數據，告訴瀏覽器這張圖可以快取 30 天
   const metadata: SettableMetadata = {
     contentType: file.type,
     cacheControl: 'public, max-age=2592000', 
     customMetadata: { 
       uploaderId: uploader.id, 
-      uploaderName: uploader.name || uploader.id // 優先使用姓名，無則使用員編
+      uploaderName: uploader.name || uploader.id 
     }
   };
 
@@ -88,12 +83,12 @@ export const uploadPhoto = async (
     const result = await uploadBytes(storageRef, file, metadata);
     const url = await getDownloadURL(result.ref);
 
-    // 寫入資料庫：uploaderName 確保有值
+    // 同步將照片資訊寫入 Firestore 以便檢索
     await addDoc(collection(db, PHOTOS_COLLECTION), {
       url,
       storagePath: filename,
       uploaderId: uploader.id,
-      uploaderName: uploader.name || uploader.id, // 重要：確保縮圖顯示有名稱可抓
+      uploaderName: uploader.name || uploader.id,
       timestamp,
       likes: 0,
       category,
@@ -106,7 +101,12 @@ export const uploadPhoto = async (
 };
 
 /**
- * 執行 DressCode 投票
+ * DressCode 投票事務 (Atomic Transaction)
+ * 使用 Firestore 事務處理來確保投票數據的原子性 (Atomicity)：
+ * 1. 檢查使用者是否投過票
+ * 2. 如果投過 A 現在投 B：將 A 減一，B 加一
+ * 3. 更新使用者個人檔案中的投票紀錄
+ * 這樣可以避免在高併發（很多人同時點擊）時出現票數不準的情況。
  */
 export const voteForPhoto = async (photoId: string, userId: string) => {
   const userVoteRef = doc(db, VOTES_COLLECTION, userId);
@@ -118,10 +118,12 @@ export const voteForPhoto = async (photoId: string, userId: string) => {
     const prevPhotoId = voteDoc.exists() ? voteDoc.data()?.photoId : null;
 
     if (prevPhotoId === photoId) {
+      // 點擊同一張：取消投票
       txn.delete(userVoteRef);
       txn.update(photoRef, { likes: increment(-1) });
       txn.update(userRef, { votedFor: null });
     } else {
+      // 換投另一張：扣掉舊的，增加新的
       if (prevPhotoId) {
         const oldRef = doc(db, PHOTOS_COLLECTION, prevPhotoId);
         txn.update(oldRef, { likes: increment(-1) });
@@ -134,15 +136,33 @@ export const voteForPhoto = async (photoId: string, userId: string) => {
 };
 
 /**
- * 刪除照片
+ * 刪除照片與相關 Storage 檔案 (Delete Photo)
+ * Fix: Implement deletePhoto to remove Firestore document and corresponding files in Storage.
  */
 export const deletePhoto = async (photo: Photo) => {
-  if (photo.storagePath) {
-    try {
-      await deleteObject(ref(storage, photo.storagePath));
-    } catch (e) {
-      console.warn("[PhotoService] 實體檔案已不存在");
+  try {
+    // 1. 刪除 Firestore 紀錄
+    await deleteDoc(doc(db, PHOTOS_COLLECTION, photo.id));
+
+    // 2. 刪除 Storage 中的原始檔案
+    if (photo.storagePath) {
+      const storageRef = ref(storage, photo.storagePath);
+      await deleteObject(storageRef).catch(err => {
+        console.warn("[PhotoService] 原始檔案刪除失敗或已不存在", err);
+      });
+
+      // 3. 嘗試刪除縮圖 (Resize Images 擴展產生的)
+      const thumbPath = getThumbnailPath(photo.storagePath, '200x200');
+      if (thumbPath) {
+        const thumbRef = ref(storage, thumbPath);
+        await deleteObject(thumbRef).catch(err => {
+          // 縮圖可能尚未生成或路徑不符，這裡不拋出錯誤
+          console.warn("[PhotoService] 縮圖刪除失敗或不存在", err);
+        });
+      }
     }
+  } catch (error) {
+    console.error("[PhotoService] 刪除流程發生錯誤:", error);
+    throw error;
   }
-  await deleteDoc(doc(db, PHOTOS_COLLECTION, photo.id));
 };

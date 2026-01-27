@@ -6,7 +6,7 @@ import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import Lightbox from '../components/Lightbox';
 import PhotoCard from '../components/PhotoCard';
-import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, User, Trash2 } from 'lucide-react';
+import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, User, Trash2, Hash } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,7 +21,6 @@ const DressCode: React.FC = () => {
   const [title, setTitle] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  // Fix: Expanded sortBy state to include 'time' to resolve type errors in handleSortChange and sortedPhotos logic.
   const [sortBy, setSortBy] = useState<'id' | 'likes' | 'time'>('likes'); 
   const [isDescending, setIsDescending] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -89,7 +88,6 @@ const DressCode: React.FC = () => {
     setUploading(true);
     try {
       const compressedFile = await compressImage(selectedFile);
-      // 上傳時，uploaderName 帶入目前的使用者姓名或員編
       await DataService.uploadPhoto(compressedFile, 'dresscode', user, title);
       setTitle('');
       setShowUpload(false);
@@ -102,11 +100,10 @@ const DressCode: React.FC = () => {
     }
   };
 
-  // 刪除處理 (僅限管理員)
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
     e.stopPropagation();
     if (!user?.isAdmin) return;
-    if (!confirm("確定要以管理員身份移除這件作品嗎？此操作不可恢復。")) return;
+    if (!confirm("確定要以管理員身份移除這件作品嗎？刪除無法恢復")) return;
     setDeletingId(photo.id);
     try {
       await DataService.deletePhoto(photo);
@@ -157,7 +154,7 @@ const DressCode: React.FC = () => {
         <div className="flex justify-between items-center border-t border-white/5 pt-3">
           <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Filter</span>
           <div className="flex bg-slate-900/80 rounded-lg p-1 border border-slate-700">
-            {[{ id: 'likes', label: '熱門', icon: Heart }, { id: 'id', label: '員編', icon: SortAsc }].map((btn) => (
+            {[{ id: 'likes', label: '熱門', icon: Heart }, { id: 'id', label: '員編', icon: SortAsc }, { id: 'time', label: '時間', icon: Clock }].map((btn) => (
               <button key={btn.id} 
               onClick={() => handleSortChange(btn.id as any)} 
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold transition-all 
@@ -192,7 +189,6 @@ const DressCode: React.FC = () => {
                       />
                       {isVoted && <div className="absolute top-2 left-2 bg-poke-red text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg border border-white/20 z-10">我的最愛</div>}
                       
-                      {/* 管理員刪除按鈕 */}
                       {canDelete && (
                         <button 
                           onClick={(e) => handleDelete(e, photo)}
@@ -207,12 +203,21 @@ const DressCode: React.FC = () => {
                         <span className="block text-xl font-display font-bold text-white text-glow leading-none">{photo.likes}</span>
                         <span className="text-[7px] text-slate-400 font-mono uppercase">Votes</span>
                       </div>
-                      <div className="absolute bottom-2 left-2 max-w-[70%] pointer-events-none z-10">
-                        <p className="font-bold text-white text-[11px] truncate drop-shadow-lg">{photo.title || "無題作品"}</p>
-                        <p className="text-[9px] text-gray-400 truncate flex items-center gap-1">
-                            <User size={8} className="text-poke-cyan"/> 
-                            {photo.uploaderName || photo.uploaderId}
+
+                      {/* 資訊區塊：新增員編顯示 */}
+                      <div className="absolute bottom-2 left-2 max-w-[70%] pointer-events-none z-10 flex flex-col gap-0.5">
+                        <p className="font-bold text-white text-[11px] truncate drop-shadow-lg leading-tight mb-0.5">
+                          {photo.title || "無題作品"}
                         </p>
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] text-gray-300 truncate flex items-center gap-1">
+                              <User size={8} className="text-poke-cyan shrink-0"/> 
+                              {photo.uploaderName || '匿名訓練師'}
+                          </p>
+                          <p className="text-[7px] text-slate-500 font-mono flex items-center gap-0.5 tracking-wider uppercase">
+                              {photo.uploaderId}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     <div className="p-2 bg-slate-900/60 border-t border-white/5">
