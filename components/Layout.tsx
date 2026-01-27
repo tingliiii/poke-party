@@ -38,8 +38,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className="absolute inset-0 bg-poke-yellow blur-md opacity-40"></div>
              </div>
              <h1 className="text-xl font-display font-bold tracking-wider text-white">
-                POKE<span className="text-poke-cyan">PARTY</span>
-                <span className="text-[10px] ml-1 text-gray-500 font-normal tracking-widest">OS v2.8</span>
+                <span className="text-poke-cyan">玉山科技聯隊</span>寶可熊派對
+                <span className="text-[10px] ml-1 text-gray-500 font-normal tracking-widest">2026春酒</span>
              </h1>
           </Link>
           

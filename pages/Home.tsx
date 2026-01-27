@@ -109,42 +109,7 @@ const Home: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8 pb-24">
-      {/* 系統公告區 */}
-      <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-4 flex items-start gap-3 backdrop-blur-md">
-        <Zap className="text-poke-yellow w-5 h-5 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <h4 className="text-sm font-bold text-poke-yellow">系統公告</h4>
-          <p className="text-xs text-slate-400 leading-relaxed font-mono">
-            • 圖片上傳限制：MAX 1MB / JPEG, PNG<br />
-            • 投票系統：每人限投一票，可隨時修改<br />
-          </p>
-        </div>
-      </div>
-
-      {/* 功能入口網格 */}
-      <section className="grid grid-cols-1 gap-4">
-        {menuItems.map((item, idx) => (
-          <div
-            key={idx}
-            onClick={() => navigate(item.route)}
-            className={`
-                relative overflow-hidden rounded-2xl border p-5 cursor-pointer group transition-all duration-300 hover:scale-[1.02]
-                bg-gradient-to-br bg-slate-900/50 backdrop-blur-md flex items-center gap-5
-                ${item.border} ${item.gradient} hover:shadow-[0_0_20px_rgba(0,0,0,0.5)]
-            `}
-          >
-            <div className={`p-3 rounded-xl bg-black/40 ${item.iconColor} drop-shadow-lg group-hover:scale-110 transition-transform duration-300 shrink-0`}>
-              <item.icon size={36} />
-            </div>
-            <div className="flex-1">
-                <h3 className="font-display font-bold text-xl text-white leading-tight group-hover:scale-105 transition-transform origin-left">{item.title}</h3>
-                <p className="text-slate-400 text-[10px] mt-0.5 font-mono tracking-widest uppercase opacity-70">{item.subtitle}</p>
-            </div>
-            <ChevronRight className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" size={20} />
-          </div>
-        ))}
-      </section>
+    <div className="space-y-8 pb-20">
 
       {/* 使用者資訊區 */}
       <section className="animate-fade-in-up">
@@ -320,6 +285,43 @@ const Home: React.FC = () => {
       {showLogin && (
         <LoginModal onClose={() => setShowLogin(false)} onLoginSuccess={() => { }} />
       )}
+
+      
+      {/* 功能入口網格 */}
+      <section className="grid grid-cols-1 gap-4">
+        {menuItems.map((item, idx) => (
+          <div
+            key={idx}
+            onClick={() => navigate(item.route)}
+            className={`
+                relative overflow-hidden rounded-2xl border p-5 cursor-pointer group transition-all duration-300 hover:scale-[1.02]
+                bg-gradient-to-br bg-slate-900/50 backdrop-blur-md flex items-center gap-5
+                ${item.border} ${item.gradient} hover:shadow-[0_0_20px_rgba(0,0,0,0.5)]
+            `}
+          >
+            <div className={`p-3 rounded-xl bg-black/40 ${item.iconColor} drop-shadow-lg group-hover:scale-110 transition-transform duration-300 shrink-0`}>
+              <item.icon size={36} />
+            </div>
+            <div className="flex-1">
+                <h3 className="font-display font-bold text-xl text-white leading-tight group-hover:scale-105 transition-transform origin-left">{item.title}</h3>
+                <p className="text-slate-400 text-[10px] mt-0.5 font-mono tracking-widest uppercase opacity-70">{item.subtitle}</p>
+            </div>
+            <ChevronRight className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" size={20} />
+          </div>
+        ))}
+      </section>
+      
+      {/* 系統公告區 */}
+      <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-4 flex items-start gap-3 backdrop-blur-md">
+        <Zap className="text-poke-yellow w-5 h-5 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <h4 className="text-sm font-bold text-poke-yellow">系統公告</h4>
+          <p className="text-xs text-slate-400 leading-relaxed font-mono">
+            • 圖片上傳限制：MAX 1MB / JPEG, PNG<br />
+            • 投票系統：每人限投一票，可隨時修改<br />
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
