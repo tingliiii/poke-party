@@ -21,7 +21,8 @@ const DressCode: React.FC = () => {
   const [title, setTitle] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [sortBy, setSortBy] = useState<'id' | 'likes'>('likes'); 
+  // Fix: Expanded sortBy state to include 'time' to resolve type errors in handleSortChange and sortedPhotos logic.
+  const [sortBy, setSortBy] = useState<'id' | 'likes' | 'time'>('likes'); 
   const [isDescending, setIsDescending] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -154,12 +155,12 @@ const DressCode: React.FC = () => {
         )}
         
         <div className="flex justify-between items-center border-t border-white/5 pt-3">
-          <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Ranking Filter</span>
+          <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Filter</span>
           <div className="flex bg-slate-900/80 rounded-lg p-1 border border-slate-700">
             {[{ id: 'likes', label: '熱門', icon: Heart }, { id: 'id', label: '員編', icon: SortAsc }].map((btn) => (
               <button key={btn.id} 
               onClick={() => handleSortChange(btn.id as any)} 
-              className={`flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold transition-all 
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold transition-all 
               ${sortBy === btn.id ? 'bg-poke-cyan text-black shadow-glow' : 'text-slate-400'}`}>
                 <btn.icon size={10} fill={sortBy === btn.id && btn.id === 'likes' ? "black" : "none"} />
                 {btn.label}

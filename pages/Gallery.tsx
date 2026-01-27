@@ -58,7 +58,6 @@ const Gallery: React.FC = () => {
       const files = Array.from(e.target.files).slice(0, 10);
       const promises = files.map(async (file: File) => {
         const compressedFile = await compressImage(file);
-        // 上傳時會自動帶入 Cache-Control
         await DataService.uploadPhoto(compressedFile, 'gallery', user);
       });
       await Promise.all(promises);
@@ -74,7 +73,7 @@ const Gallery: React.FC = () => {
   // 刪除處理 (僅限管理員)
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
       e.stopPropagation();
-      if(!user?.isAdmin) return; // 二次防護
+      if(!user?.isAdmin) return;
       if(!confirm("確定要以管理員身份移除這張回憶嗎？")) return;
       setDeletingId(photo.id);
       try { await DataService.deletePhoto(photo); }
@@ -97,30 +96,47 @@ const Gallery: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-10">
       {/* 標題與操作區 */}
-      <div className="bg-slate-900/80 border border-emerald-500/30 p-5 rounded-2xl relative overflow-hidden backdrop-blur-md">
+      <div className="bg-slate-900/80 border border-emerald-500/30 p-5 rounded-2xl relative overflow-hidden backdrop-blur-md shadow-2xl">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2"></div>
+        
         <div className="relative z-10">
-             <div className="flex items-center justify-between mb-4">
+             <div className="flex justify-between items-start">
                  <div>
-                    <h2 className="text-2xl font-display font-bold text-emerald-400 text-glow">精彩時光機</h2>
-                    <p className="text-slate-400 text-[10px] font-mono tracking-widest uppercase opacity-60">Memory Archive</p>
+                    <h2 className="text-2xl font-display font-bold text-emerald-400 text-glow">我是相簿</h2>
+                    <p className="text-slate-400 text-[10px] font-mono tracking-widest uppercase opacity-70 mt-1">歡迎分享照片.ᐟ.ᐟ 散播快樂散播愛</p>
                  </div>
-                 <ImageIcon className="text-emerald-500/50 w-8 h-8" />
+                 
+                 <div className="flex flex-col items-end">
+                    <input id="gallery-upload-input" type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
+                    {/* 比照 DressCode 風格的按鈕 */}
+                    <Button 
+                      variant={user ? "primary" : "secondary"} 
+                      className={`text-xs py-2 px-4 transition-all duration-300 ${
+                        user && !uploading
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/50 hover:bg-emerald-500 hover:text-black hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]" 
+                          : ""
+                      }`} 
+                      onClick={handleUploadClick}
+                    >
+                        {uploading ? (
+                          <Loader2 className="animate-spin" size={16} />
+                        ) : (
+                          user ? <Plus size={16} /> : <Lock size={16} />
+                        )}
+                        {uploading ? '傳送中' :  '分享照片'}
+                    </Button>
+                 </div>
              </div>
-             <div className="w-full">
-                <input id="gallery-upload-input" type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
-                <Button variant={user ? "outline" : "ghost"} fullWidth className={user ? "border-emerald-500/50 text-emerald-400" : "bg-slate-800"} onClick={handleUploadClick}>
-                    {uploading ? <Loader2 className="animate-spin" /> : (user ? <Plus /> : <Lock size={16} />)}
-                    {uploading ? '正在傳送...' : (user ? '分享照片' : '登入後分享')}
-                </Button>
-            </div>
         </div>
+
          {/* 排序控制 */}
-         <div className="flex justify-end border-t border-white/5 pt-2 mt-4 relative z-10">
-            <div className="flex bg-slate-950/80 rounded-lg p-1 border border-emerald-500/20">
+         <div className="flex justify-between items-center border-t border-white/5 pt-3 mt-4 relative z-10">
+            <span className="text-[9px] text-slate-600 font-mono uppercase tracking-[0.2em]">Filter</span>
+            <div className="flex bg-slate-950/80 rounded-lg p-0.5 border border-emerald-500/20">
                 {[{ id: 'time', label: '時間', icon: Clock }, { id: 'id', label: '員編', icon: SortAsc }].map(btn => (
-                  <button key={btn.id} onClick={() => handleSortChange(btn.id as any)} className={`flex items-center gap-1 px-3 py-1 rounded text-[10px] font-bold transition-all ${sortBy === btn.id ? 'bg-emerald-500 text-black shadow-glow' : 'text-slate-500'}`}>
+                  <button key={btn.id} onClick={() => handleSortChange(btn.id as any)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold transition-all ${sortBy === btn.id ? 'bg-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'text-slate-500 hover:text-slate-300'}`}>
                     <btn.icon size={12} />
                     {btn.label}
                     {sortBy === btn.id && (isDescending ? <ChevronDown size={10} /> : <ChevronUp size={10} />)}
@@ -132,28 +148,25 @@ const Gallery: React.FC = () => {
 
       {loading ? (
         <div className="grid grid-cols-3 gap-1 animate-pulse">
-            {[...Array(9)].map((_, i) => <div key={i} className="aspect-square bg-slate-800 rounded" />)}
+            {[...Array(12)].map((_, i) => <div key={i} className="aspect-square bg-slate-800/50 rounded-sm" />)}
         </div>
       ) : (
         <div className="space-y-8">
-            {/* 照片網格：一排三張 */}
-            <div className="grid grid-cols-3 gap-1">
+            <div className="grid grid-cols-3 gap-1 px-0.5">
                 {paginatedPhotos.map((photo, index) => {
-                    // 修改權限邏輯：僅管理員可刪除
                     const canDelete = user?.isAdmin;
                     const isThisDeleting = deletingId === photo.id;
                     const globalIndex = (currentPage - 1) * PHOTOS_PER_PAGE + index;
 
                     return (
-                        <div key={photo.id} onClick={() => setViewingIndex(globalIndex)} className="relative aspect-square bg-slate-950 group cursor-zoom-in active:scale-95 transition-all overflow-hidden border border-white/5">
+                        <div key={photo.id} onClick={() => setViewingIndex(globalIndex)} className="relative aspect-square bg-slate-950 group cursor-zoom-in active:scale-95 transition-all overflow-hidden border border-white/5 hover:border-emerald-500/30">
                             <PhotoCard 
                                 photo={photo} 
                                 size="200x200" 
                                 className="w-full h-full"
                             />
                             
-                            {/* 縮圖資訊遮罩 */}
-                            <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col pointer-events-none z-10">
+                            <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col pointer-events-none z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <span className="text-[7px] text-emerald-400 font-mono font-bold truncate uppercase flex items-center gap-0.5">
                                     <User size={8}/> 
                                     {photo.uploaderName || photo.uploaderId}
@@ -166,7 +179,7 @@ const Gallery: React.FC = () => {
                             {canDelete && (
                                 <button 
                                     onClick={(e) => handleDelete(e, photo)} 
-                                    className="absolute top-1 right-1 bg-red-600/90 p-1.5 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-500"
+                                    className="absolute top-1 right-1 bg-red-600/90 p-1.5 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-500 shadow-xl"
                                     disabled={isThisDeleting}
                                 >
                                     {isThisDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
@@ -177,7 +190,6 @@ const Gallery: React.FC = () => {
                 })}
             </div>
 
-            {/* 分頁控制器 */}
             {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-4 pt-6 border-t border-white/5">
                     <button 
@@ -202,7 +214,6 @@ const Gallery: React.FC = () => {
         </div>
       )}
 
-      {/* 滿版檢視組件 */}
       <Lightbox photos={sortedPhotos} initialIndex={viewingIndex} onClose={() => setViewingIndex(null)} />
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} onLoginSuccess={() => {}} />}
     </div>

@@ -109,27 +109,16 @@ const Home: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-10">
 
       {/* 使用者資訊區 */}
       <section className="animate-fade-in-up">
         {user ? (
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl shadow-2xl group mb-6">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl shadow-2xl group">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 opacity-50"></div>
             
             <div className="relative p-6">
-              <div className="flex items-center gap-6 mb-6">
-                <div className="relative shrink-0">
-                  <div className="w-24 h-24 rounded-2xl bg-slate-800 border-2 border-poke-cyan/50 flex items-center justify-center relative overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-                    <UserIcon size={48} className="text-poke-cyan opacity-80" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-poke-cyan/20 to-transparent h-[15%] animate-scanline opacity-30"></div>
-                  </div>
-                  {user.isAdmin && (
-                    <div className="absolute -bottom-2 -right-2 bg-yellow-500 text-black text-[9px] font-bold px-2 py-0.5 rounded-full border-2 border-slate-900 shadow-xl flex items-center gap-1">
-                      <Shield size={10} /> ADMIN
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-6">
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col">
@@ -227,7 +216,7 @@ const Home: React.FC = () => {
           <div className="bg-slate-900 w-full max-w-sm rounded-2xl border border-yellow-500/30 p-0 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-yellow-500/5">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <UserPlus size={20} className="text-yellow-500" /> 員工權限管理
+                    <UserPlus size={20} className="text-yellow-500" /> 權限管理
                 </h3>
                 <button onClick={() => setShowAdminModal(false)} className="text-slate-500 hover:text-white">
                     <X size={20} />
@@ -240,7 +229,7 @@ const Home: React.FC = () => {
                 <div className="flex gap-2">
                     <input
                         className="flex-1 bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none font-mono"
-                        placeholder="例如: 12345"
+                        placeholder="請輸入員編"
                         value={newStaffId}
                         onChange={e => setNewStaffId(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && handleAddStaff()}
@@ -252,7 +241,7 @@ const Home: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">目前管理員名單 ({adminList.length})</label>
+                <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">管理員名單 ({adminList.length})</label>
                 <div className="space-y-2">
                     {adminList.map(admin => (
                         <div key={admin.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex justify-between items-center group">
