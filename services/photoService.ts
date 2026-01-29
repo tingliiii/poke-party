@@ -1,3 +1,4 @@
+
 /**
  * 照片管理與投票核心服務 (PhotoService)
  * 封裝所有與照片相關的 Firestore 資料讀寫與 Storage 檔案操作
@@ -8,7 +9,7 @@ import {
   collection, doc, addDoc, deleteDoc, 
   query, where, onSnapshot, runTransaction, increment,
   // 新增分頁需要的函式
-  limit, startAfter, getDocs, orderBy, QueryDocumentSnapshot, DocumentData
+  limit, startAfter, getDocs, orderBy, QueryDocumentSnapshot, DocumentData, getCountFromServer
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject, SettableMetadata } from "firebase/storage";
 import { Photo, User } from "../types";
@@ -39,27 +40,45 @@ export const getThumbnailPath = (originalPath: string | undefined, size: string 
 };
 
 /**
+ * 取得指定分類的照片總數 (Total Count)
+ * 用於計算分頁總頁數 (Total Pages)
+ */
+export const getPhotoCount = async (category: 'dresscode' | 'gallery') => {
+  try {
+    const q = query(collection(db, PHOTOS_COLLECTION), where('category', '==', category));
+    const snapshot = await getCountFromServer(q);
+    return snapshot.data().count;
+  } catch (error) {
+    console.error("取得照片總數失敗:", error);
+    return 0;
+  }
+};
+
+/**
  * 分頁讀取照片 (Paged Fetch)
  * 用於 Gallery 頁面，解決照片過多導致一次載入過慢的問題。
  * * 原理：
- * 1. 第一次呼叫時，lastDoc 為 null，只抓最新的 30 筆。
- * 2. 按下「載入更多」時，傳入上一頁的最後一筆資料 (lastDoc)，
- * Firestore 會從該筆資料之後開始，再抓 30 筆。
+ * 1. 第一次呼叫時，lastDoc 為 null，只抓最新的 N 筆。
+ * 2. 分頁時，傳入上一頁的最後一筆資料 (lastDoc)，Firestore 會從該筆資料之後開始抓。
  * @param category 分類
- * @param pageSize 每頁數量 (預設 30)
+ * @param pageSize 每頁數量
  * @param lastDoc 上一頁的最後一個文件快照 (游標)
+ * @param sortBy 排序欄位 (預設 timestamp)
+ * @param sortDirection 排序方向 (desc/asc)
  */
 export const fetchPhotosPaged = async (
   category: 'dresscode' | 'gallery',
   pageSize: number = 30,
-  lastDoc: QueryDocumentSnapshot<DocumentData> | null = null
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null = null,
+  sortBy: string = 'timestamp',
+  sortDirection: 'asc' | 'desc' = 'desc'
 ) => {
   // 1. 建立基礎查詢
   // 注意：使用 startAfter 分頁時，必須明確指定 orderBy
   let q = query(
     collection(db, PHOTOS_COLLECTION),
     where('category', '==', category),
-    orderBy('timestamp', 'desc'), // 依照時間倒序 (最新的在前面)
+    orderBy(sortBy, sortDirection),
     limit(pageSize)
   );
 
