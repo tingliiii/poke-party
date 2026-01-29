@@ -6,7 +6,9 @@
 import { db, storage } from "./firebase";
 import { 
   collection, doc, addDoc, deleteDoc, 
-  query, where, onSnapshot, runTransaction, increment 
+  query, where, onSnapshot, runTransaction, increment,
+  // 新增分頁需要的函式
+  limit, startAfter, getDocs, orderBy, QueryDocumentSnapshot, DocumentData
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject, SettableMetadata } from "firebase/storage";
 import { Photo, User } from "../types";
@@ -37,6 +39,48 @@ export const getThumbnailPath = (originalPath: string | undefined, size: string 
 };
 
 /**
+ * 分頁讀取照片 (Paged Fetch)
+ * 用於 Gallery 頁面，解決照片過多導致一次載入過慢的問題。
+ * * 原理：
+ * 1. 第一次呼叫時，lastDoc 為 null，只抓最新的 30 筆。
+ * 2. 按下「載入更多」時，傳入上一頁的最後一筆資料 (lastDoc)，
+ * Firestore 會從該筆資料之後開始，再抓 30 筆。
+ * @param category 分類
+ * @param pageSize 每頁數量 (預設 30)
+ * @param lastDoc 上一頁的最後一個文件快照 (游標)
+ */
+export const fetchPhotosPaged = async (
+  category: 'dresscode' | 'gallery',
+  pageSize: number = 30,
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null = null
+) => {
+  // 1. 建立基礎查詢
+  // 注意：使用 startAfter 分頁時，必須明確指定 orderBy
+  let q = query(
+    collection(db, PHOTOS_COLLECTION),
+    where('category', '==', category),
+    orderBy('timestamp', 'desc'), // 依照時間倒序 (最新的在前面)
+    limit(pageSize)
+  );
+
+  // 2. 如果有傳入「上一頁的最後一筆」，則加入 startAfter 條件
+  if (lastDoc) {
+    q = query(q, startAfter(lastDoc));
+  }
+
+  // 3. 執行查詢 (使用 getDocs 而非 onSnapshot，因為分頁通常不需要即時監聽)
+  const snapshot = await getDocs(q);
+  
+  // 4. 轉換資料
+  const photos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Photo));
+  
+  // 5. 取得這一頁的「最後一筆文件」(這要回傳給前端，下次呼叫時要帶回來)
+  const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+
+  return { photos, lastVisible };
+};
+
+/**
  * 即時訂閱照片流 (Real-time Stream)
  * 使用 Firestore 的 onSnapshot 建立長連接 (WebSocket)，
  * 當資料庫有任何變動時（如有人剛上傳、刪除或修改），UI 會收到通知並自動更新。
@@ -50,7 +94,10 @@ export const subscribeToPhotos = (
   onError?: (error: any) => void
 ) => {
   // 建立查詢條件：只撈取指定分類的照片
-  const q = query(collection(db, PHOTOS_COLLECTION), where('category', '==', category));
+  const q = query(
+    collection(db, PHOTOS_COLLECTION), 
+    where('category', '==', category),
+    orderBy('timestamp', 'desc'));
   
   // 開始監聽
   return onSnapshot(q, (snapshot) => {
@@ -78,7 +125,7 @@ export const uploadPhoto = async (
   title?: string
 ) => {
   const timestamp = Date.now();
-  // 產生隨機字串避免檔名衝突
+  // 產生隨機字串
   const randomId = Math.random().toString(36).substring(2, 8);
   // 動態取得副檔名，若無則預設 jpg
   const fileExtension = file.name.split('.').pop() || 'jpg';
@@ -89,7 +136,7 @@ export const uploadPhoto = async (
   
   // 設定 Storage 元數據 (Metadata)
   const metadata: SettableMetadata = {
-    contentType: file.type, // 確保瀏覽器能正確識別檔案類型
+    contentType: file.type, 
     // public: 允許 CDN 快取; max-age: 2592000 秒 (約 30 天)
     cacheControl: 'public, max-age=2592000', 
     // 自訂 metadata
