@@ -1,7 +1,7 @@
-
 /**
  * 照片管理與投票核心服務 (PhotoService)
  * 封裝所有與照片相關的 Firestore 資料讀寫與 Storage 檔案操作
+ * 包含：資料庫讀寫、檔案存取、即時監聽與交易處理
  */
 import { db, storage } from "./firebase";
 import { 
@@ -11,39 +11,51 @@ import {
 import { ref, uploadBytes, getDownloadURL, deleteObject, SettableMetadata } from "firebase/storage";
 import { Photo, User } from "../types";
 
+// 定義資料庫集合名稱常數
 const PHOTOS_COLLECTION = 'photos';
 const VOTES_COLLECTION = 'votes';
 const USERS_COLLECTION = 'users';
 
 /**
  * 取得縮圖路徑 (Thumbnail Logic)
- * 配合 Firebase Resize Images 擴展，自動將原圖路徑映射到縮圖路徑
- * 格式：[原目錄]/[檔名]_[尺寸].[副檔名]
+ * 配合 Firebase Extension Resize Images 自動將原圖路徑映射到縮圖路徑
+ * 該擴充功能會自動在原圖上傳後，於同一目錄產生帶有尺寸後綴的縮圖。
+ * 格式轉換範例： `folder/image.jpg` -> `folder/image_200x200.jpg`
+ * @param originalPath 原圖在 Storage 上的完整路徑
+ * @param size 縮圖尺寸 (預設為 200x200)
  */
 export const getThumbnailPath = (originalPath: string | undefined, size: string = '200x200') => {
   if (!originalPath) return null;
   const lastDotIndex = originalPath.lastIndexOf('.');
+  // 如果找不到副檔名，則直接回傳原路徑避免錯誤
   if (lastDotIndex === -1) return originalPath;
+  
   const basePath = originalPath.substring(0, lastDotIndex);
   const ext = originalPath.substring(lastDotIndex);
+  // 組合新路徑：檔名 + "_" + 尺寸 + 副檔名
   return `${basePath}_${size}${ext}`;
 };
 
 /**
  * 即時訂閱照片流 (Real-time Stream)
- * 使用 onSnapshot 建立長連接，當資料庫有任何變動時（如有人剛上傳或被刪除），
- * UI 會立即自動更新，無需手動重新整理頁面。
+ * 使用 Firestore 的 onSnapshot 建立長連接 (WebSocket)，
+ * 當資料庫有任何變動時（如有人剛上傳、刪除或修改），UI 會收到通知並自動更新。
+ * @param category 分類 ('dresscode' 或 'gallery')
+ * @param callback 成功取得資料時的回呼函式
+ * @param onError 發生錯誤時的回呼函式
  */
 export const subscribeToPhotos = (
   category: 'dresscode' | 'gallery', 
   callback: (photos: Photo[]) => void,
   onError?: (error: any) => void
 ) => {
+  // 建立查詢條件：只撈取指定分類的照片
   const q = query(collection(db, PHOTOS_COLLECTION), where('category', '==', category));
   
+  // 開始監聽
   return onSnapshot(q, (snapshot) => {
     const photos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Photo));
-    // 依時間戳記排序，最新的照片排在最前面
+    // 前端進行排序：依時間戳記降序 (最新的照片排在最前面)
     photos.sort((a, b) => b.timestamp - a.timestamp);
     callback(photos);
   }, (error) => {
@@ -54,7 +66,10 @@ export const subscribeToPhotos = (
 
 /**
  * 上傳照片與 MetaData 管理
- * 此處設定了快取控制 (Cache-Control)，以優化前端圖片重複加載的效能。
+ * 此函式處理兩個核心任務：
+ * 1. 將實體檔案上傳至 Firebase Storage。
+ * 2. 將檔案資訊與下載連結寫入 Firestore 資料庫。
+ * 設定緩存控制 (Cache-Control)，告訴瀏覽器圖片可快取 30 天
  */
 export const uploadPhoto = async (
   file: File, 
@@ -63,16 +78,21 @@ export const uploadPhoto = async (
   title?: string
 ) => {
   const timestamp = Date.now();
+  // 產生隨機字串避免檔名衝突
   const randomId = Math.random().toString(36).substring(2, 8);
+  // 動態取得副檔名，若無則預設 jpg
   const fileExtension = file.name.split('.').pop() || 'jpg';
+  // 組合儲存路徑
   const filename = `${category}/${timestamp}_${uploader.id}_${randomId}.${fileExtension}`;
   
   const storageRef = ref(storage, filename);
   
-  // 設定 Storage 元數據，告訴瀏覽器這張圖可以快取 30 天
+  // 設定 Storage 元數據 (Metadata)
   const metadata: SettableMetadata = {
-    contentType: file.type,
+    contentType: file.type, // 確保瀏覽器能正確識別檔案類型
+    // public: 允許 CDN 快取; max-age: 2592000 秒 (約 30 天)
     cacheControl: 'public, max-age=2592000', 
+    // 自訂 metadata
     customMetadata: { 
       uploaderId: uploader.id, 
       uploaderName: uploader.name || uploader.id 
@@ -80,13 +100,15 @@ export const uploadPhoto = async (
   };
 
   try {
+    // 1. 執行上傳
     const result = await uploadBytes(storageRef, file, metadata);
+    // 2. 取得公開下載網址
     const url = await getDownloadURL(result.ref);
 
-    // 同步將照片資訊寫入 Firestore 以便檢索
+    // 3. 同步將照片資訊寫入 Firestore 以便檢索與列表顯示
     await addDoc(collection(db, PHOTOS_COLLECTION), {
       url,
-      storagePath: filename,
+      storagePath: filename, // 儲存路徑 (刪除時需要用到)
       uploaderId: uploader.id,
       uploaderName: uploader.name || uploader.id,
       timestamp,
@@ -102,34 +124,42 @@ export const uploadPhoto = async (
 
 /**
  * DressCode 投票事務 (Atomic Transaction)
- * 使用 Firestore 事務處理來確保投票數據的原子性 (Atomicity)：
- * 1. 檢查使用者是否投過票
- * 2. 如果投過 A 現在投 B：將 A 減一，B 加一
- * 3. 更新使用者個人檔案中的投票紀錄
- * 這樣可以避免在高併發（很多人同時點擊）時出現票數不準的情況。
+ * 使用 Firestore 事務處理 (Transaction) 來確保投票數據的原子性 (Atomicity)。
+ * 這能防止在高併發（多人同時點擊）情況下，發生讀取與寫入不一致導致票數錯誤的問題。
+ * * 邏輯流程：
+ * 1. 讀取使用者目前的投票狀態。
+ * 2. 判斷是「取消投票」、「換票」還是「新投票」。
+ * 3. 一次性提交所有變更。
  */
 export const voteForPhoto = async (photoId: string, userId: string) => {
-  const userVoteRef = doc(db, VOTES_COLLECTION, userId);
-  const photoRef = doc(db, PHOTOS_COLLECTION, photoId);
-  const userRef = doc(db, USERS_COLLECTION, userId);
+  const userVoteRef = doc(db, VOTES_COLLECTION, userId); // 使用者個人的投票紀錄
+  const photoRef = doc(db, PHOTOS_COLLECTION, photoId);  // 目標照片文件
+  const userRef = doc(db, USERS_COLLECTION, userId);     // 使用者資料文件
 
   await runTransaction(db, async (txn) => {
+    // 交易必須先讀後寫
     const voteDoc = await txn.get(userVoteRef);
     const prevPhotoId = voteDoc.exists() ? voteDoc.data()?.photoId : null;
 
     if (prevPhotoId === photoId) {
-      // 點擊同一張：取消投票
+      // 情況 A：點擊同一張 -> 視為取消投票
       txn.delete(userVoteRef);
-      txn.update(photoRef, { likes: increment(-1) });
+      txn.update(photoRef, { likes: increment(-1) }); // 使用原子操作扣分
       txn.update(userRef, { votedFor: null });
     } else {
-      // 換投另一張：扣掉舊的，增加新的
+      // 情況 B：換投另一張 或 第一次投票
+      
+      // 如果之前投過別張，先去把那張的票數扣掉
       if (prevPhotoId) {
         const oldRef = doc(db, PHOTOS_COLLECTION, prevPhotoId);
         txn.update(oldRef, { likes: increment(-1) });
       }
+      
+      // 設定新的投票紀錄
       txn.set(userVoteRef, { photoId });
+      // 目標照片票數 +1
       txn.update(photoRef, { likes: increment(1) });
+      // 更新使用者狀態
       txn.update(userRef, { votedFor: photoId });
     }
   });
@@ -137,26 +167,27 @@ export const voteForPhoto = async (photoId: string, userId: string) => {
 
 /**
  * 刪除照片與相關 Storage 檔案 (Delete Photo)
- * Fix: Implement deletePhoto to remove Firestore document and corresponding files in Storage.
+ * 執行完整的清理流程，包含資料庫紀錄與雲端硬碟上的實體檔案。
  */
 export const deletePhoto = async (photo: Photo) => {
   try {
-    // 1. 刪除 Firestore 紀錄
+    // 1. 先刪除 Firestore 紀錄 (讓前端列表能最快反應消失)
     await deleteDoc(doc(db, PHOTOS_COLLECTION, photo.id));
 
     // 2. 刪除 Storage 中的原始檔案
     if (photo.storagePath) {
       const storageRef = ref(storage, photo.storagePath);
+      // 使用 catch 忽略錯誤：防止因為檔案已被手動刪除而導致程式崩潰
       await deleteObject(storageRef).catch(err => {
         console.warn("[PhotoService] 原始檔案刪除失敗或已不存在", err);
       });
 
-      // 3. 嘗試刪除縮圖 (Resize Images 擴展產生的)
+      // 3. 嘗試刪除縮圖 (由 Resize Images 擴展產生的檔案)
       const thumbPath = getThumbnailPath(photo.storagePath, '200x200');
       if (thumbPath) {
         const thumbRef = ref(storage, thumbPath);
         await deleteObject(thumbRef).catch(err => {
-          // 縮圖可能尚未生成或路徑不符，這裡不拋出錯誤
+          // 縮圖可能尚未生成或路徑不符，這裡僅紀錄警告不拋出錯誤
           console.warn("[PhotoService] 縮圖刪除失敗或不存在", err);
         });
       }
