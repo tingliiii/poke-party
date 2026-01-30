@@ -9,7 +9,8 @@ import PhotoCard from '../components/PhotoCard';
 import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, User, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
-import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+// Fix: Use namespace import for firestore to resolve "no exported member" errors in certain build environments
+import * as firestore from "firebase/firestore";
 
 const PAGE_SIZE = 10;
 
@@ -25,7 +26,8 @@ const DressCode: React.FC = () => {
   // 分頁狀態
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [cursors, setCursors] = useState<Record<number, QueryDocumentSnapshot<DocumentData> | null>>({ 1: null });
+  // Fix: Reference QueryDocumentSnapshot and DocumentData via the firestore namespace
+  const [cursors, setCursors] = useState<Record<number, firestore.QueryDocumentSnapshot<firestore.DocumentData> | null>>({ 1: null });
 
   // UI 狀態
   const [title, setTitle] = useState('');
@@ -171,6 +173,25 @@ const DressCode: React.FC = () => {
     }
   };
 
+  /**
+   * 處理投票邏輯
+   * 投票後必須重新讀取資料以顯示正確票數 (因為採用分頁讀取而非即時監聽)
+   */
+  const handleVote = async (photoId: string) => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    try {
+      await DataService.voteForPhoto(photoId, user.id);
+      // 投票成功後，重新讀取當前頁面以即時顯示最新票數
+      await loadPage(page);
+    } catch (error) {
+      console.error("投票失敗:", error);
+      alert("投票處理發生錯誤，請稍後再試");
+    }
+  };
+
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
     e.stopPropagation();
     if (!user?.isAdmin) return;
@@ -291,9 +312,9 @@ const DressCode: React.FC = () => {
                     </div>
                     
                     <div className="p-2 bg-slate-900/60 border-t border-white/5">
-                      <Button variant={isVoted ? "danger" : "secondary"} fullWidth className="text-[10px] py-2 h-auto" onClick={() => user ? DataService.voteForPhoto(photo.id, user.id) : setShowLoginModal(true)}>
+                      <Button variant={isVoted ? "danger" : "secondary"} fullWidth className="text-[10px] py-2 h-auto" onClick={() => handleVote(photo.id)}>
                         <Heart size={12} fill={isVoted ? "white" : "none"} />
-                        {isVoted ? '取消投票' : '投他一票'}
+                        {isVoted ? '投他一票' : '投他一票'}
                       </Button>
                     </div>
                   </div>

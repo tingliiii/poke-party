@@ -9,7 +9,8 @@ import PhotoCard from '../components/PhotoCard';
 import { Loader2, Plus, Lock, Trash2, Clock, SortAsc, User, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
-import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+// Fix: Use namespace import for firestore to resolve "no exported member" errors in certain build environments
+import * as firestore from "firebase/firestore";
 
 /**
  * 精彩時光機 (相簿頁) - Gallery Component
@@ -32,7 +33,8 @@ const Gallery: React.FC = () => {
   // 游標歷史紀錄：記錄每一頁的「起始游標」，以便上一頁/下一頁切換
   // cursors[1] = null (第一頁從頭開始)
   // cursors[2] = Page 1 的最後一張
-  const [cursors, setCursors] = useState<Record<number, QueryDocumentSnapshot<DocumentData> | null>>({ 1: null });
+  // Fix: Reference QueryDocumentSnapshot and DocumentData via the firestore namespace
+  const [cursors, setCursors] = useState<Record<number, firestore.QueryDocumentSnapshot<firestore.DocumentData> | null>>({ 1: null });
 
   // 排序狀態 (目前僅支援當頁排序)
   const [sortBy, setSortBy] = useState<'time' | 'id'>('time');

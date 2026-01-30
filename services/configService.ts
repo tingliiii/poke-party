@@ -1,7 +1,11 @@
 
 import { db, storage } from "./firebase";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// Fix: Use namespace imports for firestore and storage to resolve "no exported member" errors in certain build environments
+import * as firestore from "firebase/firestore";
+import * as storagePkg from "firebase/storage";
+
+const { doc, onSnapshot, setDoc } = firestore;
+const { ref, uploadBytes, getDownloadURL } = storagePkg;
 
 export const subscribeToSeating = (callback: (url: string) => void) => {
   return onSnapshot(doc(db, 'config', 'seating'), (snap) => {
