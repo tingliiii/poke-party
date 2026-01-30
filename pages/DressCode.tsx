@@ -6,13 +6,9 @@ import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import Lightbox from '../components/Lightbox';
 import PhotoCard from '../components/PhotoCard';
-import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, User, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, User, Trash2 } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
-// Fix: Use namespace import for firestore to resolve "no exported member" errors in certain build environments
-import * as firestore from "firebase/firestore";
-
-const PAGE_SIZE = 10;
 
 const DressCode: React.FC = () => {
   const { user } = useAuth();
@@ -23,12 +19,6 @@ const DressCode: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   
-  // 分頁狀態
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  // Fix: Reference QueryDocumentSnapshot and DocumentData via the firestore namespace
-  const [cursors, setCursors] = useState<Record<number, firestore.QueryDocumentSnapshot<firestore.DocumentData> | null>>({ 1: null });
-
   // UI 狀態
   const [title, setTitle] = useState('');
   const [showUpload, setShowUpload] = useState(false);
@@ -45,89 +35,39 @@ const DressCode: React.FC = () => {
   
   const [viewingIndex, setViewingIndex] = useState<number | null>(null);
 
-  // 1. 初始化與更新總數
-  const fetchCount = async () => {
-    const count = await DataService.getPhotoCount('dresscode');
-    setTotalCount(count);
-  };
-
+  // 1. 建立即時監聽 (Subscription)
   useEffect(() => {
-    fetchCount();
-  }, [uploading, deletingId]); 
-
-  const getSortField = () => {
-      switch (sortBy) {
-          case 'id': return 'uploaderId';
-          case 'likes': return 'likes';
-          case 'time': return 'timestamp';
-          default: return 'timestamp';
-      }
-  };
-
-  // 2. 載入指定頁面
-  const loadPage = async (targetPage: number) => {
     setLoading(true);
-    try {
-      const cursor = cursors[targetPage];
-      if (cursor === undefined && targetPage !== 1) {
-          setPage(1);
-          return;
-      }
-      
-      const { photos: newPhotos, lastVisible } = await DataService.fetchPhotosPaged(
-        'dresscode', 
-        PAGE_SIZE, 
-        cursor,
-        getSortField(),
-        isDescending ? 'desc' : 'asc'
-      );
-
-      setPhotos(newPhotos);
-      
-      if (lastVisible) {
-        setCursors(prev => ({ ...prev, [targetPage + 1]: lastVisible }));
-      }
-      
-      setPage(targetPage);
-    } catch (error) {
-      console.error("載入頁面失敗:", error);
-    } finally {
+    // 使用 subscribeToPhotos 訂閱資料流，當資料庫變動(包含投票)時會自動觸發 callback
+    const unsubscribe = DataService.subscribeToPhotos('dresscode', (data) => {
+      setPhotos(data);
       setLoading(false);
-    }
-  };
+    });
 
-  const firstRender = useRef(true);
-
-  // 當排序變更時，重置分頁並重新載入
-  useEffect(() => {
-    if (firstRender.current) {
-        firstRender.current = false;
-        return;
-    }
-    setCursors({ 1: null });
-    if (page === 1) loadPage(1);
-    else setPage(1);
-  }, [sortBy, isDescending]);
-
-  useEffect(() => {
-    loadPage(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]); 
+    // 組件卸載時取消訂閱
+    return () => unsubscribe();
+  }, []); // 空依賴陣列，確保只訂閱一次
 
   useEffect(() => {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
   }, [previewUrl]);
 
+  // === Client-side Sorting (前端排序) ===
+  // 因為改為全量訂閱，直接在前端進行排序即可，無需重新請求後端
+  const sortedPhotos = [...photos].sort((a, b) => {
+    let result = 0;
+    if (sortBy === 'likes') {
+        // 先比讚數，讚數相同比時間
+        result = (a.likes - b.likes) || (a.timestamp - b.timestamp);
+    } else if (sortBy === 'time') {
+        result = a.timestamp - b.timestamp;
+    } else {
+        result = a.uploaderId.localeCompare(b.uploaderId);
+    }
+    return isDescending ? -result : result;
+  });
+
   // === Handlers ===
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
-
-  const handlePrevPage = () => {
-    if (page > 1) setPage(p => p - 1);
-  };
-
-  const handleNextPage = () => {
-    if (page < totalPages) setPage(p => p + 1);
-  };
 
   const handleSortChange = (newSort: 'time' | 'id' | 'likes') => {
     if (sortBy === newSort) setIsDescending(!isDescending);
@@ -155,16 +95,12 @@ const DressCode: React.FC = () => {
     setUploading(true);
     try {
       const compressedFile = await compressImage(selectedFile);
+      // 上傳後不需要手動 reload，監聽器會自動收到新資料
       await DataService.uploadPhoto(compressedFile, 'dresscode', user, title);
       
       setTitle('');
       setShowUpload(false);
       clearSelection();
-      
-      await fetchCount();
-      setCursors({ 1: null });
-      setPage(1);
-      loadPage(1);
       
     } catch (error) {
       alert("上傳失敗");
@@ -173,19 +109,14 @@ const DressCode: React.FC = () => {
     }
   };
 
-  /**
-   * 處理投票邏輯
-   * 投票後必須重新讀取資料以顯示正確票數 (因為採用分頁讀取而非即時監聽)
-   */
   const handleVote = async (photoId: string) => {
     if (!user) {
       setShowLoginModal(true);
       return;
     }
     try {
+      // 投票後 Firestore 會觸發更新，監聽器會自動更新畫面票數
       await DataService.voteForPhoto(photoId, user.id);
-      // 投票成功後，重新讀取當前頁面以即時顯示最新票數
-      await loadPage(page);
     } catch (error) {
       console.error("投票失敗:", error);
       alert("投票處理發生錯誤，請稍後再試");
@@ -199,9 +130,8 @@ const DressCode: React.FC = () => {
     
     setDeletingId(photo.id);
     try {
+      // 刪除後不需要手動 reload，監聽器會自動移除該筆資料
       await DataService.deletePhoto(photo);
-      await fetchCount();
-      loadPage(page);
     } catch (e) {
       alert("刪除失敗");
     } finally {
@@ -248,7 +178,7 @@ const DressCode: React.FC = () => {
         )}
         
         <div className="flex justify-between items-center border-t border-white/5 pt-3">
-        <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">已有 {totalCount} 位選手</span>
+        <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">已有 {photos.length} 位選手</span>
           <div className="flex bg-slate-900/80 rounded-lg p-1 border border-slate-700">
             {[{ id: 'likes', label: '熱門', icon: Heart }, { id: 'id', label: '員編', icon: SortAsc }, { id: 'time', label: '時間', icon: Clock }].map((btn) => (
               <button key={btn.id} 
@@ -269,7 +199,7 @@ const DressCode: React.FC = () => {
       ) : (
         <div className="space-y-6">
             <div className="grid grid-cols-2 gap-3">
-              {photos.map((photo, index) => {
+              {sortedPhotos.map((photo, index) => {
                 const isVoted = user?.votedFor === photo.id;
                 const canDelete = user?.isAdmin;
                 const isThisDeleting = deletingId === photo.id;
@@ -321,39 +251,19 @@ const DressCode: React.FC = () => {
                 );
               })}
             </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 py-4 mx-2">
-                <Button 
-                   variant="ghost" 
-                   onClick={handlePrevPage} 
-                   disabled={page === 1 || loading}
-                   className="p-2 h-auto text-slate-400 hover:text-white disabled:opacity-30"
-                >
-                   <ChevronLeft size={20} />
-                </Button>
-                
-                <div className="flex flex-col items-center">
-                   <span className="text-poke-cyan font-display font-bold text-lg">
-                     {page} <span className="text-slate-600 text-sm">/</span> {totalPages}
-                   </span>
+            
+            {/* Pagination Controls 已移除 */}
+            
+            {sortedPhotos.length === 0 && (
+                <div className="text-center py-10 text-slate-500 text-xs font-mono">
+                    目前還沒有參賽作品，快來當第一個！
                 </div>
-
-                <Button 
-                   variant="ghost" 
-                   onClick={handleNextPage} 
-                   disabled={page >= totalPages || loading}
-                   className="p-2 h-auto text-slate-400 hover:text-white disabled:opacity-30"
-                >
-                   <ChevronRight size={20} />
-                </Button>
-              </div>
             )}
         </div>
       )}
       
-      <Lightbox photos={photos} initialIndex={viewingIndex} onClose={() => setViewingIndex(null)} />
+      {/* 注意：傳遞給 Lightbox 的應該是排序後的陣列，確保左右切換順序正確 */}
+      <Lightbox photos={sortedPhotos} initialIndex={viewingIndex} onClose={() => setViewingIndex(null)} />
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} onLoginSuccess={() => {}} />}
     </div>
   );

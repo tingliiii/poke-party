@@ -9,14 +9,17 @@ import PhotoCard from '../components/PhotoCard';
 import { Loader2, Plus, Lock, Trash2, Clock, SortAsc, User, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
-// Fix: Use namespace import for firestore to resolve "no exported member" errors in certain build environments
-import * as firestore from "firebase/firestore";
+import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 
 /**
  * 精彩時光機 (相簿頁) - Gallery Component
  * 使用分頁讀取 (Pagination)
  */
 const PAGE_SIZE = 30; 
+
+// 定義快取結構
+type PageCache = { [page: number]: Photo[] };
+type CursorCache = { [page: number]: QueryDocumentSnapshot<DocumentData> | null };
 
 const Gallery: React.FC = () => {
   const { user } = useAuth();
@@ -30,13 +33,14 @@ const Gallery: React.FC = () => {
   // 分頁狀態
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  // 游標歷史紀錄：記錄每一頁的「起始游標」，以便上一頁/下一頁切換
-  // cursors[1] = null (第一頁從頭開始)
-  // cursors[2] = Page 1 的最後一張
-  // Fix: Reference QueryDocumentSnapshot and DocumentData via the firestore namespace
-  const [cursors, setCursors] = useState<Record<number, firestore.QueryDocumentSnapshot<firestore.DocumentData> | null>>({ 1: null });
 
-  // 排序狀態 (目前僅支援當頁排序)
+  // 本地快取 (使用 ref 避免觸發額外渲染)
+  const pagesCache = useRef<PageCache>({}); 
+  // 紀錄每一頁的「起始游標」 (Key: 頁碼, Value: 上一頁的最後一筆)
+  // 第 1 頁的起始游標是 null
+  const cursorsCache = useRef<CursorCache>({ 1: null });
+
+  // 排序狀態
   const [sortBy, setSortBy] = useState<'time' | 'id'>('time');
   const [isDescending, setIsDescending] = useState(true);
   
@@ -54,16 +58,29 @@ const Gallery: React.FC = () => {
   }, [uploading, deletingId]); // 當上傳或刪除發生時，更新總數
 
   // 2. 載入指定頁面
-  const loadPage = async (targetPage: number) => {
+  const loadPage = async (targetPage: number, forceRefresh = false) => {
     setLoading(true);
+
+    // [Cache Check] 如果不是強制刷新，且快取有資料，直接使用
+    if (!forceRefresh && pagesCache.current[targetPage]) {
+        console.log(`[Cache Hit] 讀取第 ${targetPage} 頁快取`);
+        setPhotos(pagesCache.current[targetPage]);
+        setLoading(false);
+        setPage(targetPage);
+        return;
+    }
+
     try {
-      const cursor = cursors[targetPage];
+      // 取得該頁的起始游標
+      const cursor = cursorsCache.current[targetPage];
+      
       // 如果游標不存在 (理論上不該發生，除非跳頁)，則預設回到第一頁
       if (cursor === undefined && targetPage !== 1) {
           setPage(1);
           return;
       }
       
+      console.log(`[API Call] 下載第 ${targetPage} 頁...`);
       const { photos: newPhotos, lastVisible } = await DataService.fetchPhotosPaged(
         'gallery', 
         PAGE_SIZE, 
@@ -72,14 +89,17 @@ const Gallery: React.FC = () => {
         isDescending ? 'desc' : 'asc'
       );
 
-      setPhotos(newPhotos);
+      // [Write Cache] 寫入快取
+      pagesCache.current[targetPage] = newPhotos;
       
       // 記錄下一頁的起始游標 (即當前頁的最後一筆)
       if (lastVisible) {
-        setCursors(prev => ({ ...prev, [targetPage + 1]: lastVisible }));
+        cursorsCache.current[targetPage + 1] = lastVisible;
       }
-      
+
+      setPhotos(newPhotos);
       setPage(targetPage);
+      
     } catch (error) {
       console.error("載入頁面失敗:", error);
     } finally {
@@ -95,17 +115,18 @@ const Gallery: React.FC = () => {
         firstRender.current = false;
         return;
     }
-    setCursors({ 1: null });
-    if (page === 1) loadPage(1);
+    // 清空快取
+    pagesCache.current = {};
+    cursorsCache.current = { 1: null };
+
+    if (page === 1) loadPage(1, true);
     else setPage(1);
   }, [sortBy, isDescending]);
 
   // 當 page 變動時觸發載入 (或初始化)
   useEffect(() => {
     loadPage(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]); 
-  // 注意：cursors 不放依賴，避免迴圈。
 
   // === 操作 Handlers ===
   const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
@@ -138,12 +159,15 @@ const Gallery: React.FC = () => {
       });
       await Promise.all(promises);
       
-      // 上傳成功後，重新抓取總數並回到第一頁
+      // 上傳成功：資料變動了，必須清空快取
+      pagesCache.current = {};
+      cursorsCache.current = { 1: null };
+
+      // 重新抓取總數並回到第一頁
       await fetchCount();
-      // 重置游標並載入第一頁
-      setCursors({ 1: null });
+
       setPage(1);
-      loadPage(1);
+      loadPage(1, true);
       
     } catch (error) {
       alert("上傳失敗，請稍後再試");
@@ -161,9 +185,12 @@ const Gallery: React.FC = () => {
       setDeletingId(photo.id);
       try { 
         await DataService.deletePhoto(photo);
-        // 刪除後更新列表 (重新載入當前頁)
+        // 刪除成功：資料變動了，清空快取
+        pagesCache.current = {};
+        cursorsCache.current = { 1: null };
+        // 更新列表 (重新載入當前頁)
         await fetchCount();
-        loadPage(page);
+        loadPage(page, true);
       } catch(e) { 
         alert("刪除失敗"); 
       } finally { 
