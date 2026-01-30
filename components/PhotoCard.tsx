@@ -96,6 +96,8 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, size = '200x200', classNam
             className={`w-full h-full object-cover transition-opacity duration-300 ${loading ? 'opacity-0' : 'opacity-100'}`}
             // 瀏覽器原生懶載入：只有當圖片捲動到視口附近時才開始下載
             loading="lazy" 
+            // 非同步解碼
+            decoding="async"
         />
     </div>
   );

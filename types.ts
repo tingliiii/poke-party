@@ -11,14 +11,6 @@ export interface FirebaseConfig {
   appId: string;
 }
 
-export enum UploadStatus {
-  IDLE = 'IDLE',
-  COMPRESSING = 'COMPRESSING',
-  UPLOADING = 'UPLOADING',
-  SUCCESS = 'SUCCESS',
-  ERROR = 'ERROR'
-}
-
 export interface User {
   id: string;
   name: string;
