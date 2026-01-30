@@ -85,6 +85,7 @@ export const fetchPhotosPaged = async (
   // 2. 如果有傳入「上一頁的最後一筆」，則加入 startAfter 條件
   if (lastDoc) {
     q = query(q, startAfter(lastDoc));
+    console.log(`query(q, startAfter(${lastDoc})`)
   }
 
   // 3. 執行查詢 (使用 getDocs 而非 onSnapshot，因為分頁通常不需要即時監聽)
@@ -95,7 +96,7 @@ export const fetchPhotosPaged = async (
   
   // 5. 取得這一頁的「最後一筆文件」(這要回傳給前端，下次呼叫時要帶回來)
   const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
-
+  console.log(`[PhotoService] fetchPhotosPaged: category=${category} / pageSize=${pageSize} / sortBy=${sortBy} ${sortDirection}`)
   return { photos, lastVisible };
 };
 
@@ -115,8 +116,7 @@ export const subscribeToPhotos = (
   // 建立查詢條件：只撈取指定分類的照片
   const q = query(
     collection(db, PHOTOS_COLLECTION), 
-    where('category', '==', category),
-    orderBy('timestamp', 'desc'));
+    where('category', '==', category));
   
   // 開始監聽
   return onSnapshot(q, (snapshot) => {

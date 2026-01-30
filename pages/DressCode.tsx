@@ -283,6 +283,9 @@ const DressCode: React.FC = () => {
                           <p className="text-[9px] text-gray-300 truncate flex items-center gap-1">
                               <User size={8} className="text-poke-cyan shrink-0"/> {photo.uploaderName || '匿名訓練師'}
                           </p>
+                          <p className="text-[7px] text-slate-500 font-mono flex items-center gap-0.5 tracking-wider uppercase">
+                              {photo.uploaderId}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -299,7 +302,7 @@ const DressCode: React.FC = () => {
             </div>
 
             {/* Pagination Controls */}
-            {totalCount > 0 && (
+            {totalPages > 1 && (
               <div className="flex justify-center items-center gap-4 py-4 mx-2">
                 <Button 
                    variant="ghost" 

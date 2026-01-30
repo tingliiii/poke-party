@@ -15,7 +15,7 @@ const { initializeApp, getApps, getApp } = firebaseApp;
 // Firebase 配置對象：定義應用的後端基礎設施參數
 // 根據開發者規範，apiKey 必須從環境變量 process.env.API_KEY 中讀取
 const firebaseConfig: FirebaseConfig = {
-  apiKey: process.env.API_KEY || "", 
+  apiKey: process.env.FIREBASE_API_KEY || "", 
   authDomain: "pokeparty-f7572.firebaseapp.com",
   projectId: "pokeparty-f7572",
   storageBucket: "pokeparty-f7572.firebasestorage.app",
