@@ -76,7 +76,7 @@ const Lightbox: React.FC<LightboxProps> = ({ photos, initialIndex, onClose }) =>
           className="absolute left-0 top-0 bottom-0 w-1/5 flex items-center justify-center z-[115] cursor-pointer group"
           onClick={(e) => { e.stopPropagation(); handlePrev(e); }}
         >
-          <div className="p-3 bg-white/5 group-hover:bg-white/10 rounded-full text-white/30 group-hover:text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100">
+          <div className="p-3 text-white/30 group-hover:text-white transition-all opacity-0 group-hover:opacity-100">
             <ChevronLeft size={32} />
           </div>
         </div>
@@ -87,7 +87,7 @@ const Lightbox: React.FC<LightboxProps> = ({ photos, initialIndex, onClose }) =>
           className="absolute right-0 top-0 bottom-0 w-1/5 flex items-center justify-center z-[115] cursor-pointer group"
           onClick={(e) => { e.stopPropagation(); handleNext(e); }}
         >
-          <div className="p-3 bg-white/5 group-hover:bg-white/10 rounded-full text-white/30 group-hover:text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100">
+          <div className="p-3 text-white/30 group-hover:text-white transition-all opacity-0 group-hover:opacity-100">
             <ChevronRight size={32} />
           </div>
         </div>
