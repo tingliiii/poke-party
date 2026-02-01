@@ -26,13 +26,13 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
 }) => {
   const [size, setSize] = useState({ width: 1024, height: 1024 });
 
-  // 計算縮圖網址邏輯：找到副檔名 (.jpg, .png 等)，在前面插入 _200x200
+  // 1. 在這裡直接計算縮圖網址
   const thumbUrl = React.useMemo(() => 
     photo.url.replace(/(\.[\w\d]+)(?=\?|$)/, '_200x200$1'), 
   [photo.url]);
 
   useEffect(() => {
-    // 如果 photo 物件本身已有 width/height 直接用
+    // 若物件本身已有尺寸資訊則直接使用
     if (photo.width && photo.height) {
       setSize({ width: photo.width, height: photo.height });
       return;
@@ -43,7 +43,7 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
     img.onload = () => {
       setSize({ width: img.naturalWidth, height: img.naturalHeight });
     };
-  }, [photo.url, thumbUrl]);
+  }, [photo.url, photo.width, photo.height]);
 
   return (
     <Item 
@@ -51,7 +51,7 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
       thumbnail={thumbUrl} 
       width={size.width} 
       height={size.height}
-      // 傳遞資料給上方資訊列使用 (會存入 item.data)
+      // Fix: Cast custom props to any to avoid TypeScript errors
       {...({
         uploaderName: photo.uploaderName || photo.uploaderId,
         uploaderId: photo.uploaderId,
@@ -116,6 +116,7 @@ const Gallery: React.FC = () => {
   const loadPage = async (targetPage: number, forceRefresh = false) => {
     const cacheKey = `${targetPage}_${sortBy}_${isDescending}`;
     
+    // 1. 若有快取，直接使用並結束 Loading
     if (!forceRefresh && pagesCache.current[cacheKey]) {
         setPhotos(pagesCache.current[cacheKey]);
         setLoading(false);
@@ -123,7 +124,10 @@ const Gallery: React.FC = () => {
         return;
     }
 
+    // 2. 若無快取，設定 Loading 為 true
+    // 重點：這裡【不清除】 setPhotos([])，保留舊資料在畫面上
     setLoading(true);
+    
     try {
       const cursor = cursorsCache.current[cacheKey] || null;
       const { photos: newPhotos, lastVisible } = await DataService.fetchPhotosPaged(
@@ -134,10 +138,13 @@ const Gallery: React.FC = () => {
         isDescending ? 'desc' : 'asc'
       );
 
+      // 3. 資料回來後，存入快取並切換顯示
       pagesCache.current[cacheKey] = newPhotos;
       if (lastVisible) {
         cursorsCache.current[`${targetPage + 1}_${sortBy}_${isDescending}`] = lastVisible;
       }
+      
+      // 無縫切換：React 會在同一個 Render Cycle 更新資料並移除 Loading class
       setPhotos(newPhotos);
       setPage(targetPage);
     } catch (error) {
@@ -160,9 +167,11 @@ const Gallery: React.FC = () => {
     else setPage(1);
   }, [sortBy, isDescending]);
 
+  // 監聽頁碼變動：捲動到頂部並載入資料
   useEffect(() => {
     loadPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' || 'auto' });
+    // 切換頁面時立即捲動到頂部，讓使用者看到舊資料的頂部，隨後淡入新資料
+    window.scrollTo({ top: 0, behavior: 'smooth' || 'instant' as ScrollBehavior });
   }, [page]); 
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
@@ -215,11 +224,11 @@ const Gallery: React.FC = () => {
       }
   };
 
-  // 💡 判斷是否為「初次載入」 (沒有舊資料可以顯示)
+  // 💡 僅在「完全無資料」且「正在讀取」時顯示骨架屏
   const isFirstLoad = loading && photos.length === 0;
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-6 pb-16 min-h-screen">
       {/* 頂部標題與功能按鈕區 */}
       <div className="bg-slate-900/80 border border-emerald-500/30 p-5 rounded-2xl relative overflow-hidden backdrop-blur-md shadow-2xl">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -318,19 +327,19 @@ const Gallery: React.FC = () => {
         }}
       >
       {isFirstLoad ? (
-          // 💡 情境 A: 初次載入 (完全沒資料)，顯示骨架屏
+          // 💡 情境 A: 僅在完全無資料時顯示骨架屏 (避免閃爍)
           <div className="grid grid-cols-3 gap-1 animate-pulse">
               {[...Array(12)].map((_, i) => <div key={i} className="aspect-square bg-slate-800/50 rounded-sm" />)}
           </div>
         ) : (
-          // 💡 情境 B: 有資料 (可能是舊的或剛更新的)
-          // 利用 CSS Transition 處理 "Stale" 狀態的視覺回饋
+          // 💡 情境 B: 實作 "Stale-while-revalidate" 視覺效果
+          // 當 loading=true 時，舊資料變半透明並輕微縮小，等到新資料載入後瞬間切換並恢復原狀
           <div 
             className={`
-              space-y-6 transition-all duration-300 ease-out 
+              space-y-6 transition-all duration-300 ease-out origin-top
               ${loading 
-                ? 'opacity-50 scale-[0.99] grayscale-[0.3] pointer-events-none' // 載入中：變淡、微縮、禁點擊
-                : 'opacity-100 scale-100 grayscale-0 pointer-events-auto'       // 載入完：恢復原狀
+                ? 'opacity-50 scale-[0.98] pointer-events-none' // 背景更新中：透明度 0.5，縮放 0.98
+                : 'opacity-100 scale-100 pointer-events-auto'   // 更新完成：恢復正常
               }
             `}
           >
