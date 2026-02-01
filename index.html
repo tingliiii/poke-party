@@ -131,7 +131,55 @@
       .hide-scrollbar::-webkit-scrollbar {
         display: none;
       }
-    </style>
+
+      /* 💡 PhotoSwipe 自定義膠囊資訊欄 */
+      .pswp__caption {
+      background: transparent !important;
+      bottom: 40px !important;
+      display: flex !important;
+      justify-content: center !important;
+      pointer-events: none;
+      }
+
+      .pswp-custom-caption {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 10px 24px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      font-family: ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      }
+
+      .pswp-cap-section {
+      display: flex;
+      align-items: center;
+      }
+
+      .pswp-cap-divider {
+      color: rgba(255, 255, 255, 0.15);
+      }
+
+      .text-emerald-400 {
+      color: #34d399; /* emerald-400 */
+      }
+
+      .pswp-cap-title {
+      color: white;
+      font-weight: 500;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      }
+  </style>
   <script type="importmap">
 {
   "imports": {

@@ -42,18 +42,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <span className="text-[10px] ml-1 text-gray-500 font-normal tracking-widest">2026春酒</span>
              </h1>
           </Link>
-          
-          <div className="flex items-center gap-3">
-             {user && (
-                <button 
-                  onClick={handleLogout} 
-                  className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all shadow-[0_0_10px_rgba(239,68,68,0.1)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]"
-                >
-                    <LogOut size={14} />
-                    <span>登出</span>
-                </button>
-             )}
-          </div>
         </div>
       </header>
 
