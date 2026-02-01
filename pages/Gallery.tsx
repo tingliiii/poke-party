@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 // 💡 CSS has been moved to index.html to prevent module loading errors
 import { Gallery as PSGallery, Item } from 'react-photoswipe-gallery'; 
@@ -42,13 +41,9 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
       thumbnail={photo.url}
       width={size.width} 
       height={size.height}
-      // 💡 傳遞資料給 PhotoSwipe 用於 Caption
-      {...{
-        uploaderName: photo.uploaderName || photo.uploaderId,
-        uploaderId: photo.uploaderId,
-        timestamp: photo.timestamp,
-        title: photo.title
-      } as any}
+      uploaderName={photo.uploaderName || photo.uploaderId}
+      uploaderId={photo.uploaderId}
+      timestamp={photo.timestamp}
     >
       {({ ref, open }) => (
         <div 
@@ -198,7 +193,7 @@ const Gallery: React.FC = () => {
 
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
       e.stopPropagation(); 
-      if(!user?.isAdmin || !confirm("確定要移除這張珍貴的回憶嗎？")) return;
+      if(!user?.isAdmin || !confirm("確定要刪除？")) return;
       
       setDeletingId(photo.id);
       try { 
@@ -258,37 +253,63 @@ const Gallery: React.FC = () => {
       <PSGallery options={{ 
           bgOpacity: 0.98, 
           showHideAnimationType: 'zoom',
-          // 💡 保留自定義 HTML Caption (包含姓名/員編/時間)
-          addCaptionHTMLFn: (item: any, captionEl: HTMLElement) => {
-            const { uploaderName, uploaderId, timestamp, title } = item.data as any;
-            if (!uploaderId) {
-               captionEl.children[0].innerHTML = '';
-               return false;
-            }
+          arrowPrev: true,
+          arrowNext: true,
+          zoom: true,
+          close: true,
+          counter: false, // 隱藏原本的 1/30 計數器，我們把它整合進去
+      }}
+      onBeforeOpen={(pswpInstance) => {
+          pswpInstance.on('uiRegister', () => {
+            pswpInstance.ui.registerElement({
+              name: 'top-bar-info',
+              order: 5, // 放在計數器的位置
+              isCustomElement: true,
+              appendTo: 'bar', // 💡 關鍵：掛載在頂部工具列 (Top Bar)
+              tagName: 'div',
+              onInit: (el, pswp) => {
+                // 設定基本樣式，讓它與關閉按鈕排好
+                el.style.flex = '1';
+                el.style.display = 'flex';
+                el.style.alignItems = 'center';
+                el.style.paddingLeft = '20px';
+                el.style.paddingTop = '10px';
+                el.style.overflow = 'hidden';
 
-            const timeStr = new Date(timestamp).toLocaleString('zh-TW', {
-              month: '2-digit', 
-              day: '2-digit', 
-              hour: '2-digit', 
-              minute: '2-digit', 
-              hour12: false
+                pswp.on('change', () => {
+                  const currSlide = pswp.currSlide;
+                  if (!currSlide || !currSlide.data) return;
+
+                  const { uploaderName, uploaderId, timestamp } = currSlide.data;
+                  console.log(uploaderName, uploaderId, timestamp)
+                  // 處理時間格式
+                  const timeStr = timestamp ? new Date(timestamp).toLocaleString('zh-TW', {
+                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+                  }) : '';
+                  console.log("timeStr: " + timeStr)
+
+                  // 💡 這裡寫入 HTML：左邊是人名與時間，右邊不需要管(因為有原生的關閉按鈕)
+                  el.innerHTML = `
+                    <div class="flex flex-col justify-center text-left leading-tight select-none">
+                      <div class="flex items-center gap-2">
+                         <span class="text-sm font-bold text-emerald-400 truncate max-w-[150px]">
+                           ${uploaderName || uploaderId}
+                         </span>
+                         <span class="text-[10px] text-slate-400 bg-slate-800 px-1.5 rounded border border-slate-700">
+                           ${uploaderId}
+                         </span>
+                      </div>
+                      <div class="text-[10px] text-slate-400 font-mono mt-1 opacity-80 flex items-center gap-1">
+                        <span>${timeStr}</span>
+                      </div>
+                    </div>
+                  `;
+                });
+              }
             });
-
-            captionEl.children[0].innerHTML = `
-              <div class="pswp-custom-caption">
-                <span class="pswp-cap-section text-emerald-400">
-                  <b>${uploaderName}</b> <span style="font-size:0.8em; opacity:0.8">/ ${uploaderId}</span>
-                </span>
-                <span class="pswp-cap-divider">•</span>
-                <span class="pswp-cap-section opacity-60">
-                  <span>${timeStr}</span>
-                </span>
-                ${title ? `<span class="pswp-cap-divider">•</span><span class="pswp-cap-title">${title}</span>` : ''}
-              </div>
-            `;
-            return true;
-          }
-      } as any}>
+          });
+        }}
+      >
         {loading ? (
           <div className="grid grid-cols-3 gap-1 animate-pulse">
               {[...Array(12)].map((_, i) => <div key={i} className="aspect-square bg-slate-800/50 rounded-sm" />)}

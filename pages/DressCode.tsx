@@ -126,7 +126,7 @@ const DressCode: React.FC = () => {
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
     e.stopPropagation();
     if (!user?.isAdmin) return;
-    if (!confirm("確定要刪除嗎？")) return;
+    if (!confirm("確定要刪除？")) return;
     
     setDeletingId(photo.id);
     try {
