@@ -13,7 +13,9 @@
     "react-dom": "^19.2.1",
     "lucide-react": "^0.555.0",
     "firebase": "^12.6.0",
-    "react-router-dom": "^7.10.0"
+    "react-router-dom": "^7.10.0",
+    "react-photoswipe-gallery": "^4.0.0",
+    "photoswipe": "^5.4.4"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
