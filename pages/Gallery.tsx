@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-// 💡 CSS has been moved to index.html to prevent module loading errors
 import { Gallery as PSGallery, Item } from 'react-photoswipe-gallery'; 
 import { Photo } from '../types';
 import * as DataService from '../services/dataService';
@@ -9,15 +8,14 @@ import PhotoCard from '../components/PhotoCard';
 import { Loader2, Plus, Lock, Trash2, Clock, SortAsc, User, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
-// Fix: Use namespace import for firestore to resolve "no exported member" errors
 import * as firestore from "firebase/firestore";
 
 // 設定每一頁讀取的數量
 const PAGE_SIZE = 30; 
 
 /**
- * 💡 PhotoItem 組件
- * 回歸單純的顯示邏輯，不再需要 isVisible 控制
+ * 💡 PhotoItem: 單張照片組件
+ * 負責計算縮圖路徑、偵測尺寸，並傳遞資料給 PhotoSwipe
  */
 const PhotoItem = ({ photo, user, deletingId, onDelete }: { 
   photo: Photo, 
@@ -27,20 +25,27 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
 }) => {
   const [size, setSize] = useState({ width: 1024, height: 1024 });
 
+  // 💡 1. 在這裡直接計算縮圖網址，讓它在整個組件中都能使用
+  // 邏輯：找到副檔名 (.jpg, .png 等)，在前面插入 _200x200
+  const thumbUrl = photo.url.replace(/(\.[\w\d]+)(?=\?|$)/, '_200x200$1');
+
   useEffect(() => {
     const img = new Image();
+    // 💡 2. 優先嘗試載入縮圖來獲取尺寸 (速度較快)
     img.src = photo.url;
+  
     img.onload = () => {
       setSize({ width: img.naturalWidth, height: img.naturalHeight });
     };
-  }, [photo.url]);
+  }, [photo.url, thumbUrl]);
 
   return (
     <Item 
       original={photo.url}
-      thumbnail={photo.url}
+      thumbnail={thumbUrl} // 💡 3. 將計算好的縮圖路徑傳給 PhotoSwipe
       width={size.width} 
       height={size.height}
+      // 傳遞資料給上方資訊列使用 (會存入 item.data)
       uploaderName={photo.uploaderName || photo.uploaderId}
       uploaderId={photo.uploaderId}
       timestamp={photo.timestamp}
@@ -51,6 +56,7 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
           onClick={open} 
           className="relative aspect-square bg-slate-950 group cursor-zoom-in active:scale-95 transition-all overflow-hidden border border-white/5 hover:border-emerald-500/30"
         >
+          {/* 列表顯示也使用縮圖路徑，這裡假設 PhotoCard 內部會優先使用傳入的 url 或自行處理 */}
           <PhotoCard photo={photo} size="200x200" className="w-full h-full" />
           
           <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/95 via-transparent to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -76,7 +82,7 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
 const Gallery: React.FC = () => {
   const { user } = useAuth();
   
-  // === 狀態管理 (回歸分頁邏輯) ===
+  // === 狀態管理 ===
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -84,7 +90,6 @@ const Gallery: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // 快取機制：避免來回切換頁面時重複讀取 Firebase
   const pagesCache = useRef<{ [key: string]: Photo[] }>({}); 
   const cursorsCache = useRef<{ [key: string]: firestore.QueryDocumentSnapshot<firestore.DocumentData> | null }>({});
 
@@ -101,7 +106,6 @@ const Gallery: React.FC = () => {
     fetchCount();
   }, [uploading, deletingId]);
 
-  // 核心分頁載入邏輯
   const loadPage = async (targetPage: number, forceRefresh = false) => {
     const cacheKey = `${targetPage}_${sortBy}_${isDescending}`;
     
@@ -115,18 +119,17 @@ const Gallery: React.FC = () => {
     setLoading(true);
     try {
       const cursor = cursorsCache.current[cacheKey] || null;
-      
       const { photos: newPhotos, lastVisible } = await DataService.fetchPhotosPaged(
-        'gallery', PAGE_SIZE, cursor,
+        'gallery', 
+        PAGE_SIZE, 
+        cursor,
         sortBy === 'id' ? 'uploaderId' : 'timestamp',
         isDescending ? 'desc' : 'asc'
       );
 
       pagesCache.current[cacheKey] = newPhotos;
-      
       if (lastVisible) {
-        const nextKey = `${targetPage + 1}_${sortBy}_${isDescending}`;
-        cursorsCache.current[nextKey] = lastVisible;
+        cursorsCache.current[`${targetPage + 1}_${sortBy}_${isDescending}`] = lastVisible;
       }
       setPhotos(newPhotos);
       setPage(targetPage);
@@ -139,7 +142,6 @@ const Gallery: React.FC = () => {
 
   const firstRender = useRef(true);
 
-  // 排序變更時重置
   useEffect(() => {
     if (firstRender.current) {
         firstRender.current = false;
@@ -179,7 +181,6 @@ const Gallery: React.FC = () => {
         await DataService.uploadPhoto(compressed, 'gallery', user);
       }));
       
-      // 上傳後強制重整第一頁
       pagesCache.current = {};
       cursorsCache.current = { [`1_${sortBy}_${isDescending}`]: null };
       await fetchCount();
@@ -207,6 +208,9 @@ const Gallery: React.FC = () => {
       }
   };
 
+  // 💡 判斷是否為「初次載入」 (沒有舊資料可以顯示)
+  const isFirstLoad = loading && photos.length === 0;
+
   return (
     <div className="space-y-6 pb-16">
       {/* 頂部標題與功能按鈕區 */}
@@ -214,7 +218,7 @@ const Gallery: React.FC = () => {
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2"></div>
         <div className="relative z-10 flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-display font-bold text-emerald-400 text-glow">精彩時光機</h2>
+              <h2 className="text-2xl font-display font-bold text-emerald-400 text-glow">春酒活動相簿</h2>
               <p className="text-slate-400 text-[10px] font-mono tracking-widest uppercase opacity-70 mt-1">
                 歡迎分享照片.ᐟ.ᐟ 散播快樂散播愛
               </p>
@@ -232,7 +236,9 @@ const Gallery: React.FC = () => {
 
         {/* 排序與統計資訊列 */}
         <div className="flex justify-between items-center border-t border-white/5 pt-3 mt-4 relative z-10">
-          <span className="text-[9px] text-slate-600 font-mono uppercase tracking-[0.2em]">Total: {totalCount} Photos</span>
+          <span className="text-[9px] text-slate-600 font-mono uppercase tracking-[0.2em]">
+          Total: {totalCount} Photos
+          </span>
           <div className="flex bg-slate-950/80 rounded-lg p-0.5 border border-emerald-500/20">
               {[{ id: 'time', label: '時間', icon: Clock }, { id: 'id', label: '員編', icon: SortAsc }].map(btn => (
                 <button 
@@ -249,7 +255,7 @@ const Gallery: React.FC = () => {
         </div>
       </div>
 
-      {/* 💡 照片展示核心：使用 PhotoSwipe 組件 */}
+      {/* PhotoSwipe 設定 */}
       <PSGallery options={{ 
           bgOpacity: 0.98, 
           showHideAnimationType: 'zoom',
@@ -257,18 +263,17 @@ const Gallery: React.FC = () => {
           arrowNext: true,
           zoom: true,
           close: true,
-          counter: false, // 隱藏原本的 1/30 計數器，我們把它整合進去
+          counter: false,
       }}
       onBeforeOpen={(pswpInstance) => {
           pswpInstance.on('uiRegister', () => {
             pswpInstance.ui.registerElement({
               name: 'top-bar-info',
-              order: 5, // 放在計數器的位置
+              order: 5,
               isCustomElement: true,
-              appendTo: 'bar', // 💡 關鍵：掛載在頂部工具列 (Top Bar)
+              appendTo: 'bar',
               tagName: 'div',
               onInit: (el, pswp) => {
-                // 設定基本樣式，讓它與關閉按鈕排好
                 el.style.flex = '1';
                 el.style.display = 'flex';
                 el.style.alignItems = 'center';
@@ -280,15 +285,11 @@ const Gallery: React.FC = () => {
                   const currSlide = pswp.currSlide;
                   if (!currSlide || !currSlide.data) return;
 
-                  const { uploaderName, uploaderId, timestamp } = currSlide.data;
-                  console.log(uploaderName, uploaderId, timestamp)
-                  // 處理時間格式
+                  const { uploaderName, uploaderId, timestamp } = currSlide.data as any;
                   const timeStr = timestamp ? new Date(timestamp).toLocaleString('zh-TW', {
-                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+                    hour12: false
                   }) : '';
-                  console.log("timeStr: " + timeStr)
 
-                  // 💡 這裡寫入 HTML：左邊是人名與時間，右邊不需要管(因為有原生的關閉按鈕)
                   el.innerHTML = `
                     <div class="flex flex-col justify-center text-left leading-tight select-none">
                       <div class="flex items-center gap-2">
@@ -310,12 +311,23 @@ const Gallery: React.FC = () => {
           });
         }}
       >
-        {loading ? (
+{isFirstLoad ? (
+          // 💡 情境 A: 初次載入 (完全沒資料)，顯示骨架屏
           <div className="grid grid-cols-3 gap-1 animate-pulse">
               {[...Array(12)].map((_, i) => <div key={i} className="aspect-square bg-slate-800/50 rounded-sm" />)}
           </div>
         ) : (
-          <div className="space-y-6">
+          // 💡 情境 B: 有資料 (可能是舊的或剛更新的)
+          // 利用 CSS Transition 處理 "Stale" 狀態的視覺回饋
+          <div 
+            className={`
+              space-y-6 transition-all duration-300 ease-out 
+              ${loading 
+                ? 'opacity-50 scale-[0.99] grayscale-[0.3] pointer-events-none' // 載入中：變淡、微縮、禁點擊
+                : 'opacity-100 scale-100 grayscale-0 pointer-events-auto'       // 載入完：恢復原狀
+              }
+            `}
+          >
               <div className="grid grid-cols-3 gap-1 px-0.5">
                   {photos.map((photo) => (
                       <PhotoItem 
@@ -328,7 +340,7 @@ const Gallery: React.FC = () => {
                   ))}
               </div>
 
-              {/* 下方的分頁切換控制區 */}
+              {/* 分頁控制 */}
               {totalCount > 0 && (
                 <div className="flex justify-center items-center gap-4 py-4 mx-2">
                   <Button variant="ghost" onClick={handlePrevPage} disabled={page === 1 || loading} className="p-2 h-auto text-slate-400 disabled:opacity-30">
