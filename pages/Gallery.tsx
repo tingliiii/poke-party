@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Gallery as PSGallery, Item } from 'react-photoswipe-gallery'; 
 import { Photo } from '../types';
@@ -25,15 +26,20 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
 }) => {
   const [size, setSize] = useState({ width: 1024, height: 1024 });
 
-  // 💡 1. 在這裡直接計算縮圖網址，讓它在整個組件中都能使用
-  // 邏輯：找到副檔名 (.jpg, .png 等)，在前面插入 _200x200
-  const thumbUrl = photo.url.replace(/(\.[\w\d]+)(?=\?|$)/, '_200x200$1');
+  // 計算縮圖網址邏輯：找到副檔名 (.jpg, .png 等)，在前面插入 _200x200
+  const thumbUrl = React.useMemo(() => 
+    photo.url.replace(/(\.[\w\d]+)(?=\?|$)/, '_200x200$1'), 
+  [photo.url]);
 
   useEffect(() => {
+    // 如果 photo 物件本身已有 width/height 直接用
+    if (photo.width && photo.height) {
+      setSize({ width: photo.width, height: photo.height });
+      return;
+    }
+
     const img = new Image();
-    // 💡 2. 優先嘗試載入縮圖來獲取尺寸 (速度較快)
     img.src = photo.url;
-  
     img.onload = () => {
       setSize({ width: img.naturalWidth, height: img.naturalHeight });
     };
@@ -42,13 +48,15 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
   return (
     <Item 
       original={photo.url}
-      thumbnail={thumbUrl} // 💡 3. 將計算好的縮圖路徑傳給 PhotoSwipe
+      thumbnail={thumbUrl} 
       width={size.width} 
       height={size.height}
       // 傳遞資料給上方資訊列使用 (會存入 item.data)
-      uploaderName={photo.uploaderName || photo.uploaderId}
-      uploaderId={photo.uploaderId}
-      timestamp={photo.timestamp}
+      {...({
+        uploaderName: photo.uploaderName || photo.uploaderId,
+        uploaderId: photo.uploaderId,
+        timestamp: photo.timestamp
+      } as any)}
     >
       {({ ref, open }) => (
         <div 
@@ -56,7 +64,6 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
           onClick={open} 
           className="relative aspect-square bg-slate-950 group cursor-zoom-in active:scale-95 transition-all overflow-hidden border border-white/5 hover:border-emerald-500/30"
         >
-          {/* 列表顯示也使用縮圖路徑，這裡假設 PhotoCard 內部會優先使用傳入的 url 或自行處理 */}
           <PhotoCard photo={photo} size="200x200" className="w-full h-full" />
           
           <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/95 via-transparent to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -155,7 +162,7 @@ const Gallery: React.FC = () => {
 
   useEffect(() => {
     loadPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' || 'auto' });
   }, [page]); 
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
@@ -270,7 +277,6 @@ const Gallery: React.FC = () => {
             pswpInstance.ui.registerElement({
               name: 'top-bar-info',
               order: 5,
-              isCustomElement: true,
               appendTo: 'bar',
               tagName: 'div',
               onInit: (el, pswp) => {
@@ -311,7 +317,7 @@ const Gallery: React.FC = () => {
           });
         }}
       >
-{isFirstLoad ? (
+      {isFirstLoad ? (
           // 💡 情境 A: 初次載入 (完全沒資料)，顯示骨架屏
           <div className="grid grid-cols-3 gap-1 animate-pulse">
               {[...Array(12)].map((_, i) => <div key={i} className="aspect-square bg-slate-800/50 rounded-sm" />)}

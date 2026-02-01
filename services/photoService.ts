@@ -5,19 +5,16 @@
  * 包含：資料庫讀寫、檔案存取、即時監聽與交易處理
  */
 import { db, storage } from "./firebase";
-// Fix: Use namespace imports for firestore and storage to resolve "no exported member" errors in certain build environments
 import * as firestore from "firebase/firestore";
 import * as storagePkg from "firebase/storage";
 import { Photo, User } from "../types";
 
-// Explicitly extract members from the firestore namespace
 const { 
   collection, doc, addDoc, deleteDoc, 
   query, where, onSnapshot, runTransaction, increment,
   limit, startAfter, getDocs, orderBy, getCountFromServer
 } = firestore;
 
-// Explicitly extract members from the storage namespace
 const { ref, uploadBytes, getDownloadURL, deleteObject } = storagePkg;
 
 // 定義資料庫集合名稱常數
@@ -138,6 +135,25 @@ export const subscribeToPhotos = (
 };
 
 /**
+ * 輔助函式：取得圖片檔案的原始尺寸
+ */
+const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width: 0, height: 0 });
+    };
+    img.src = objectUrl;
+  });
+};
+
+/**
  * 上傳照片與 MetaData 管理
  * 此函式處理兩個核心任務：
  * 1. 將實體檔案上傳至 Firebase Storage。
@@ -174,10 +190,15 @@ export const uploadPhoto = async (
   };
 
   try {
-    // 1. 執行上傳
-    const result = await uploadBytes(storageRef, file, metadata);
+    // 1. 同時執行：取得圖片尺寸 & 上傳檔案
+    // 這樣可以確保在寫入 Firestore 前我們已經有寬高資訊
+    const [uploadResult, dimensions] = await Promise.all([
+        uploadBytes(storageRef, file, metadata),
+        getImageDimensions(file)
+    ]);
+
     // 2. 取得公開下載網址
-    const url = await getDownloadURL(result.ref);
+    const url = await getDownloadURL(uploadResult.ref);
 
     // 3. 同步將照片資訊寫入 Firestore 以便檢索與列表顯示
     await addDoc(collection(db, PHOTOS_COLLECTION), {
@@ -188,7 +209,9 @@ export const uploadPhoto = async (
       timestamp,
       likes: 0,
       category,
-      title: title || ''
+      title: title || '',
+      width: dimensions.width, 
+      height: dimensions.height 
     });
   } catch (error) {
     console.error("[PhotoService] 上傳流程錯誤:", error);

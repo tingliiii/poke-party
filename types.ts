@@ -1,3 +1,4 @@
+
 /**
  * 寶可夢春酒系統核心型別定義
  */
@@ -29,6 +30,8 @@ export interface Photo {
   category: 'dresscode' | 'gallery';
   title?: string;
   storagePath?: string;
+  width?: number;
+  height?: number;
 }
 
 export enum AppRoute {
