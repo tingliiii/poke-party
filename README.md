@@ -1,6 +1,8 @@
 # ⚡️ PokeParty 2026 - 春酒互動平台
 
-**PokeParty 2026** 是一個**透過 Google AI Studio 部署在 GCP (Google Cloud Platform) 上的互動小網頁**。結合了寶可夢 (Pokémon) 與賽博龐克 (Cyberpunk) 風格，為公司春酒活動設計，提供員工即時互動、照片分享與活動資訊查詢功能。主要特色包含暗黑模式 UI、霓虹光效視覺體驗，以及針對行動裝置最佳化的操作介面。
+**PokeParty 2026** 是一個透過 Google AI Studio 部署在 GCP (Google Cloud Platform) 上的互動小網頁。
+結合了寶可夢 (Pokémon) 與賽博龐克 (Cyberpunk) 風格，為公司春酒活動設計，提供員工即時互動、照片分享與活動資訊查詢功能。
+主要特色包含暗黑模式 UI、霓虹光效視覺體驗，以及針對行動裝置最佳化的操作介面。
 
 ## 功能特色
 
