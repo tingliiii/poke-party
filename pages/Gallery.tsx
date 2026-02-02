@@ -241,10 +241,10 @@ const Gallery: React.FC = () => {
             </div>
             <div className="flex flex-col items-end">
               <input id="gallery-upload-input" type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
-              <Button variant={user ? "primary" : "secondary"} 
+              <Button 
               className={`text-xs py-2 px-4 transition-all duration-300 bg-slate-800 text-white border border-slate-600 hover:border-white hover:bg-slate-700 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]`}
               onClick={handleUploadClick}>
-                  {uploading ? <Loader2 className="animate-spin" size={16} /> : (user ? <Plus size={16} /> : <Lock size={16} />)}
+                  {uploading ? <Loader2 className="animate-spin bg-slate-800 text-white border-slate-600" size={16} /> : (user ? <Plus size={16} /> : <Lock size={16} />)}
                   {uploading ? '傳送中' :  '分享照片'}
               </Button>
             </div>

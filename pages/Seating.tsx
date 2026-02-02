@@ -38,8 +38,11 @@ const Seating: React.FC = () => {
     <div className="h-full flex flex-col space-y-6">
       <div className="flex items-center justify-between">
         <div>
-            <h2 className="text-2xl font-display font-bold text-amber-400 text-glow-yellow">我要坐哪</h2>
-            <p className="text-slate-400 text-xs font-mono">春酒座位查詢</p>
+            <h2 className="text-2xl font-display font-bold text-amber-400 text-glow-yellow">
+            我要坐哪？
+            <span className="text-slate-400 text-xs font-mono ps-2">春酒桌次配置圖</span>
+            </h2>
+            
         </div>
       </div>
 

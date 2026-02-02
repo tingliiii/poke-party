@@ -80,8 +80,8 @@ const Home: React.FC = () => {
 
   const menuItems = [
     {
-      title: '就決定是你了',
-      subtitle: 'Pokemon Best Outfit',
+      title: '冒險者華麗大賽',
+      subtitle: 'Annual Style Showcase',
       icon: Camera,
       route: AppRoute.DRESSCODE,
       gradient: 'from-pink-500/20 to-purple-600/20',
@@ -90,7 +90,7 @@ const Home: React.FC = () => {
     },
     {
       title: '春酒活動相簿',
-      subtitle: 'Event Gallery Highlights',
+      subtitle: 'Event Highlights & Archives',
       icon: Grid,
       route: AppRoute.GALLERY,
       gradient: 'from-emerald-500/20 to-teal-600/20',
@@ -99,7 +99,7 @@ const Home: React.FC = () => {
     },
     {
       title: '我要坐哪',
-      subtitle: 'Real-time Seating Map',
+      subtitle: 'Seating Arrangements',
       icon: Map,
       route: AppRoute.SEATING,
       gradient: 'from-amber-500/20 to-orange-600/20',
