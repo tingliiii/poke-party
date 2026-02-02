@@ -9,17 +9,22 @@
 ### 1. 身份驗證 (Authentication)
 * **簡易員編登入**：支援輸入 5 碼員編快速登入。
 * **權限分級**：區分一般使用者與管理員 (Admin)。管理員擁有刪除照片、管理座位圖與設定其他管理員的權限。
+* **動態管理員機制**：
+    * **屬性控制**：使用者資料結構包含 `isAdmin` 屬性，用以識別管理員身份。
+    * **線上授權**：現有管理員可透過介面輸入員編，即時新增或移除其他管理員 (更新 Firestore `isAdmin` 欄位)，無需重啟伺服器。
+    * **超級管理員**：系統內建 Hardcoded 超級管理員名單，確保系統初始化時至少有一位管理者。
 * **個人化設定**：使用者可修改顯示暱稱。
 
-### 2. 主題穿搭評選 (Dress Code Competition)
-* **作品展示**：瀑布流式呈現參賽照片。
-* **即時投票**：一人一票制，支援即時更換投票對象，使用 Firestore Transaction 確保票數準確。
-* **圖片瀏覽**：整合 `photoswipe` 提供類似原生 App 的滿版縮放瀏覽體驗。
+### 2. 活動相簿與上傳優化 (Gallery & Upload)
+* **前端壓縮策略 (Frontend Compression)**：
+    * **突破限制**：因應後端儲存設有 **單一檔案 1MB 上限**，前端實作 Canvas 壓縮演算法。
+    * **自動處理**：上傳前自動將大圖壓縮至 1920px 以下或品質 0.8，節省流量與儲存空間。
+* **無限捲動**：支援大量照片分頁讀取 (Infinite Scroll)，提升瀏覽效能。
 
-### 3. 活動相簿 (Gallery)
-* **無限捲動 (Infinite Scroll)**：支援大量照片分頁讀取，效能最佳化。
-* **智慧壓縮**：前端上傳前自動進行圖片壓縮 (JPEG 80%, Max 1920px)，節省流量與儲存空間。
-* **即時同步**：其他人上傳的照片會即時出現在列表中。
+### 3. 主題穿搭評選 (Dress Code Competition)
+* **作品展示**：瀑布流式呈現參賽照片。
+* **即時投票**：使用 Firestore Transaction 處理投票邏輯，確保在高併發下票數統計準確 (一人一票、即時換票)。
+* **圖片瀏覽**：整合 `photoswipe` 提供類似原生 App 的滿版縮放瀏覽體驗。
 
 ### 4. 活動桌次圖查詢 (Seating Chart)
 * **高解析縮放**：支援雙指縮放查看座位細節。
@@ -31,6 +36,7 @@
 * **Build Tool**: Vite
 * **Styling**: Tailwind CSS (Custom Theme: `poke-cyan`, `poke-yellow`)
 * **Backend / Database**: Firebase (Firestore, Storage)
+* **Deployment**: GCP (Google Cloud Platform) via Google AI Studio
 * **Icons**: Lucide React
 * **Libraries**:
     * `react-router-dom`: 路由管理
