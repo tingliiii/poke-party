@@ -1,14 +1,8 @@
 # ⚡️ PokeParty 2026 - 春酒互動平台
 
-![App Version](https://img.shields.io/badge/version-0.0.0-blue) ![React](https://img.shields.io/badge/React-19-cyan) ![Firebase](https://img.shields.io/badge/Firebase-12-orange)
+**PokeParty 2026** 是一個**透過 Google AI Studio 部署在 GCP (Google Cloud Platform) 上的互動小網頁**。結合了寶可夢 (Pokémon) 與賽博龐克 (Cyberpunk) 風格，為公司春酒活動設計，提供員工即時互動、照片分享與活動資訊查詢功能。主要特色包含暗黑模式 UI、霓虹光效視覺體驗，以及針對行動裝置最佳化的操作介面。
 
-## 📖 專案簡介
-
-**PokeParty 2026** 是一個為企業春酒設計的互動式 Web 應用程式 (PWA)。結合了寶可夢 (Pokémon) 與賽博龐克 (Cyberpunk) 風格，提供員工即時互動、照片分享與活動資訊查詢功能。
-
-主要特色包含暗黑模式 UI、霓虹光效視覺體驗，以及針對行動裝置最佳化的操作介面。
-
-## 🚀 功能特色
+## 功能特色
 
 ### 1. 🔐 身份驗證 (Authentication)
 * **簡易員編登入**：支援輸入 5 碼員編快速登入。
@@ -29,7 +23,7 @@
 * **高解析縮放**：支援雙指縮放查看座位細節。
 * **動態更新**：管理員可直接從後台更新座位圖，前端無需重新部署。
 
-## 🛠 技術堆疊
+## 技術堆疊
 
 * **Frontend Framework**: React 19 + TypeScript
 * **Build Tool**: Vite
@@ -41,7 +35,7 @@
     * `react-photoswipe-gallery`: 圖片燈箱效果
     * `firebase`: 後端服務 SDK
 
-## ⚙️ 安裝與執行
+## 安裝與執行
 
 ### 前置需求
 * Node.js (建議 v18 以上)
