@@ -9,7 +9,7 @@ import PhotoCard from '../components/PhotoCard';
 import { Loader2, Plus, Lock, Trash2, Clock, SortAsc, User, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
-import * as firestore from "firebase/firestore";
+import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 
 // 設定每一頁讀取的數量
 const PAGE_SIZE = 30; 
@@ -98,7 +98,7 @@ const Gallery: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
 
   const pagesCache = useRef<{ [key: string]: Photo[] }>({}); 
-  const cursorsCache = useRef<{ [key: string]: firestore.QueryDocumentSnapshot<firestore.DocumentData> | null }>({});
+  const cursorsCache = useRef<{ [key: string]: QueryDocumentSnapshot<DocumentData> | null }>({});
 
   const [sortBy, setSortBy] = useState<'time' | 'id'>('time');
   const [isDescending, setIsDescending] = useState(true);

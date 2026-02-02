@@ -5,17 +5,14 @@
  * 包含：資料庫讀寫、檔案存取、即時監聽與交易處理
  */
 import { db, storage } from "./firebase";
-import * as firestore from "firebase/firestore";
-import * as storagePkg from "firebase/storage";
-import { Photo, User } from "../types";
-
-const { 
+import { 
   collection, doc, addDoc, deleteDoc, 
   query, where, onSnapshot, runTransaction, increment,
-  limit, startAfter, getDocs, orderBy, getCountFromServer
-} = firestore;
-
-const { ref, uploadBytes, getDownloadURL, deleteObject } = storagePkg;
+  limit, startAfter, getDocs, orderBy, getCountFromServer,
+  QueryDocumentSnapshot, DocumentData
+} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject, SettableMetadata } from "firebase/storage";
+import { Photo, User } from "../types";
 
 // 定義資料庫集合名稱常數
 const PHOTOS_COLLECTION = 'photos';
@@ -72,8 +69,7 @@ export const getPhotoCount = async (category: 'dresscode' | 'gallery') => {
 export const fetchPhotosPaged = async (
   category: 'dresscode' | 'gallery',
   pageSize: number = 30,
-  // Fix: Reference QueryDocumentSnapshot and DocumentData via the firestore namespace
-  lastDoc: firestore.QueryDocumentSnapshot<firestore.DocumentData> | null = null,
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null = null,
   sortBy: string = 'timestamp',
   sortDirection: 'asc' | 'desc' = 'desc'
 ) => {
@@ -177,8 +173,7 @@ export const uploadPhoto = async (
   const storageRef = ref(storage, filename);
   
   // 設定 Storage 元數據 (Metadata)
-  // Fix: Reference SettableMetadata via the storagePkg namespace
-  const metadata: storagePkg.SettableMetadata = {
+  const metadata: SettableMetadata = {
     contentType: file.type, 
     // public: 允許 CDN 快取; max-age: 2592000 秒 (約 30 天)
     cacheControl: 'public, max-age=2592000', 

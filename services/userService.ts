@@ -4,15 +4,11 @@
  * 負責處理使用者登入、資料同步、權限管理與即時監聽
  */
 import { db } from "./firebase";
-// Fix: Use namespace import for firestore to resolve "no exported member" errors in certain build environments
-import * as firestore from "firebase/firestore";
-import { User } from "../types";
-
-// Explicitly extract members from the namespace
-const { 
+import { 
   doc, getDoc, setDoc, updateDoc, onSnapshot, query, 
   collection, where, getDocs, writeBatch 
-} = firestore;
+} from "firebase/firestore";
+import { User } from "../types";
 
 // 定義資料庫集合名稱常數
 const USERS_COLLECTION = 'users';

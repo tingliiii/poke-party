@@ -22,7 +22,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { icon: Home, label: '首頁', path: AppRoute.HOME },
-    { icon: Camera, label: 'dresscode', path: AppRoute.DRESSCODE },
+    { icon: Camera, label: '穿搭比賽', path: AppRoute.DRESSCODE },
     { icon: Grid, label: '相簿', path: AppRoute.GALLERY },
     { icon: Map, label: '座位', path: AppRoute.SEATING },
   ];

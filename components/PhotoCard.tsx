@@ -12,12 +12,9 @@
  */
 import React, { useState, useEffect } from 'react';
 import { storage } from '../services/firebase';
-// Fix: Use namespace import for storage to resolve "no exported member" errors in certain build environments
-import * as storagePkg from 'firebase/storage';
+import { ref, getDownloadURL } from 'firebase/storage';
 import { getThumbnailPath } from '../services/photoService';
 import { Photo } from '../types';
-
-const { ref, getDownloadURL } = storagePkg;
 
 interface PhotoCardProps {
   photo: Photo;       // 照片資料物件

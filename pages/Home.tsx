@@ -80,7 +80,7 @@ const Home: React.FC = () => {
 
   const menuItems = [
     {
-      title: '冒險者華麗大賽',
+      title: '主題穿搭評選',
       subtitle: 'Annual Style Showcase',
       icon: Camera,
       route: AppRoute.DRESSCODE,
