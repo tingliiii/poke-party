@@ -68,6 +68,7 @@ npm run build
 ```
 
 ## 📂 專案結構
+```bash
 src/
 ├── components/      # 共用元件 (Layout, Button, PhotoCard...)
 ├── context/         # 全域狀態 (AuthContext)
@@ -76,6 +77,7 @@ src/
 ├── types.ts         # TypeScript 型別定義
 ├── App.tsx          # 應用程式入口與路由定義
 └── index.css        # 全域樣式與 Tailwind 設定
+```
 
 
 <div align="center">
