@@ -16,7 +16,6 @@ export interface User {
   id: string;
   name: string;
   isAdmin?: boolean;
-  avatar?: string;
   votedFor?: string;
 }
 
@@ -32,6 +31,14 @@ export interface Photo {
   storagePath?: string;
   width?: number;
   height?: number;
+}
+
+export interface PhotoSwipeCustomData {
+  uploaderName: string;
+  uploaderId: string;
+  timestamp?: number;
+  likes?: number;
+  title?: string;
 }
 
 export enum AppRoute {

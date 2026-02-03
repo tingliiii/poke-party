@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { SEATING_CHART_URL as DEFAULT_URL } from '../constants';
-import { ZoomIn, X, MapPin, Scan, Upload, Loader2 } from 'lucide-react';
-import * as DataService from '../services/dataService';
+import { X, Scan, Upload, Loader2 } from 'lucide-react';
+import * as ConfigService from '../services/configService';
 import { compressImage } from '../services/imageService';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,7 +13,7 @@ const Seating: React.FC = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    const unsub = DataService.subscribeToSeating((url) => {
+    const unsub = ConfigService.subscribeToSeating((url) => {
         setChartUrl(url);
     });
     return () => unsub();
@@ -25,7 +25,7 @@ const Seating: React.FC = () => {
       setUploading(true);
       try {
           const compressed = await compressImage(file);
-          await DataService.uploadSeatingChart(compressed);
+          await ConfigService.uploadSeatingChart(compressed);
       } catch (e) {
           console.error(e);
           alert("上傳失敗");

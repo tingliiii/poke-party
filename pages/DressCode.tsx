@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Gallery as PSGallery, Item } from 'react-photoswipe-gallery';
-import { Photo } from '../types';
-import * as DataService from '../services/dataService';
+import { Photo, PhotoSwipeCustomData } from '../types';
+import * as PhotoService from '../services/photoService';
 import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import PhotoCard from '../components/PhotoCard';
 import { Upload, Heart, Loader2, Camera, XCircle, Clock, X, SortAsc, ChevronUp, ChevronDown, User, Trash2 } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
+import { useImageDimensions } from '../hooks/useImageDimensions';
 
 const escapeHtml = (unsafe) => {
   if (!unsafe) return "";
@@ -20,10 +21,10 @@ const escapeHtml = (unsafe) => {
 };
 
 // --- Helper: 生成 PhotoSwipe 頂部資訊欄的 HTML ---
-const createCaptionHtml = (data) => {
+const createCaptionHtml = (data: PhotoSwipeCustomData) => {
 
-  const { uploaderName, uploaderId, title, likes } = data || {};
-  // 針對所有文字欄位進行 escape
+  const { uploaderName, uploaderId, title, likes } = data;
+
   const safeTitle = escapeHtml(title || '寶可熊');
   const safeName = escapeHtml(uploaderName || uploaderId);
   
@@ -45,39 +46,24 @@ const createCaptionHtml = (data) => {
   `;
 };
 
-// 抽取一個小組件來處理圖片尺寸偵測 (PhotoSwipe 需要寬高)
 const DressCodeItem = ({ photo, children }: { photo: Photo, children: (ref: any, open: any) => React.ReactNode }) => {
-  const [size, setSize] = useState({ width: 1024, height: 1024 });
 
-  useEffect(() => {
+  const { width, height } = useImageDimensions(photo.url, photo.width, photo.height);
 
-    // 若物件本身已有尺寸資訊則直接使用
-    if (photo.width && photo.height) {
-      setSize({ width: photo.width, height: photo.height });
-      return;
-    }
-
-    const img = new Image();
-    img.src = photo.url;
-    img.onload = () => {
-      setSize({ width: img.naturalWidth, height: img.naturalHeight });
-    };
-  }, [photo.url, photo.width, photo.height]);
+  const customData: PhotoSwipeCustomData = {
+    uploaderName: photo.uploaderName || photo.uploaderId,
+    uploaderId: photo.uploaderId,
+    likes: photo.likes,
+    title: photo.title
+  };
 
   return (
     <Item
       original={photo.url}
       thumbnail={photo.url}
-      width={size.width}
-      height={size.height}
-      // 將資料傳入 data 屬性，供 Caption 使用
-      // Fix: Spread props directly instead of nesting in 'data' object to avoid circular structure issues and align with Gallery.tsx
-      {...({
-        uploaderName: photo.uploaderName || photo.uploaderId,
-        uploaderId: photo.uploaderId,
-        likes: photo.likes,
-        title: photo.title
-      } as any)}
+      width={width}
+      height={height}
+      {...(customData as any)}
     >
       {({ ref, open }) => children(ref, open)}
     </Item>
@@ -111,7 +97,7 @@ const DressCode: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     // 使用 subscribeToPhotos 訂閱資料流，當資料庫變動(包含投票)時會自動觸發 callback
-    const unsubscribe = DataService.subscribeToPhotos('dresscode', (data) => {
+    const unsubscribe = PhotoService.subscribeToPhotos('dresscode', (data) => {
       setPhotos(data);
       setLoading(false);
     });
@@ -165,7 +151,7 @@ const DressCode: React.FC = () => {
     setUploading(true);
     try {
       const compressedFile = await compressImage(selectedFile);
-      await DataService.uploadPhoto(compressedFile, 'dresscode', user, title.trim());
+      await PhotoService.uploadPhoto(compressedFile, 'dresscode', user, title.trim());
 
       setTitle('');
       setShowUpload(false);
@@ -184,7 +170,7 @@ const DressCode: React.FC = () => {
       return;
     }
     try {
-      await DataService.voteForPhoto(photoId, user.id);
+      await PhotoService.voteForPhoto(photoId, user.id);
     } catch (error) {
       console.error("投票失敗:", error);
       alert("投票處理發生錯誤，請稍後再試");
@@ -198,7 +184,7 @@ const DressCode: React.FC = () => {
 
     setDeletingId(photo.id);
     try {
-      await DataService.deletePhoto(photo);
+      await PhotoService.deletePhoto(photo);
     } catch (e) {
       alert("刪除失敗");
     } finally {
@@ -297,8 +283,7 @@ const DressCode: React.FC = () => {
               pswpInstance.ui.registerElement({
                 name: 'dress-code-info',
                 order: 5,
-                // Fix: Removed invalid property isCustomElement
-                appendTo: 'bar', // 掛在頂部 Bar
+                appendTo: 'bar',
                 tagName: 'div',
                 onInit: (el, pswp) => {
                   Object.assign(el.style, {
@@ -313,7 +298,8 @@ const DressCode: React.FC = () => {
                   pswp.on('change', () => {
                     const currSlide = pswp.currSlide;
                     if (!currSlide || !currSlide.data) return;
-                    el.innerHTML = createCaptionHtml(currSlide.data);
+                    const data = currSlide.data as PhotoSwipeCustomData;
+                    el.innerHTML = createCaptionHtml(data);
                   });
                 }
               });

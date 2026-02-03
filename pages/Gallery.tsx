@@ -1,18 +1,55 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Gallery as PSGallery, Item } from 'react-photoswipe-gallery'; 
-import { Photo } from '../types';
-import * as DataService from '../services/dataService';
+import { Photo, PhotoSwipeCustomData } from '../types';
+import * as PhotoService from '../services/photoService';
 import { compressImage } from '../services/imageService';
 import Button from '../components/Button';
 import PhotoCard from '../components/PhotoCard';
 import { Loader2, Plus, Lock, Trash2, Clock, SortAsc, User, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
+import { useImageDimensions } from '../hooks/useImageDimensions';
 import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 
 // 設定每一頁讀取的數量
 const PAGE_SIZE = 30; 
+
+
+const escapeHtml = (unsafe) => {
+  if (!unsafe) return "";
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+// --- Helper: 生成 PhotoSwipe 頂部資訊欄的 HTML ---
+const createCaptionHtml = (data: PhotoSwipeCustomData) => {
+
+  const { uploaderName, uploaderId, timestamp } = data;
+  const safeName = escapeHtml(uploaderName || uploaderId);
+  const timeStr = timestamp ? new Date(timestamp).toLocaleString('zh-TW', { hour12: false }) : '';
+
+  return `
+     <div class="flex flex-col justify-center text-left leading-tight select-none">
+       <div class="flex items-center gap-2">
+          <span class="text-sm font-bold text-emerald-400 truncate max-w-[150px]">
+            ${safeName || data.uploaderId}
+          </span>
+          <span class="text-[10px] text-slate-400 bg-slate-800 px-1.5 rounded border border-slate-700">
+            ${data.uploaderId}
+          </span>
+       </div>
+       <div class="text-[10px] text-slate-400 font-mono mt-1 opacity-80 flex items-center gap-1">
+         <span>${timeStr}</span>
+       </div>
+     </div>
+   `;
+};
+
 
 /**
  * 💡 PhotoItem: 單張照片組件
@@ -24,39 +61,27 @@ const PhotoItem = ({ photo, user, deletingId, onDelete }: {
   deletingId: string | null, 
   onDelete: (e: React.MouseEvent, photo: Photo) => void 
 }) => {
-  const [size, setSize] = useState({ width: 1024, height: 1024 });
 
-  // 1. 在這裡直接計算縮圖網址
+  // 計算縮圖網址
   const thumbUrl = React.useMemo(() => 
     photo.url.replace(/(\.[\w\d]+)(?=\?|$)/, '_200x200$1'), 
   [photo.url]);
 
-  useEffect(() => {
-    // 若物件本身已有尺寸資訊則直接使用
-    if (photo.width && photo.height) {
-      setSize({ width: photo.width, height: photo.height });
-      return;
-    }
+  const { width, height } = useImageDimensions(photo.url, photo.width, photo.height);
 
-    const img = new Image();
-    img.src = photo.url;
-    img.onload = () => {
-      setSize({ width: img.naturalWidth, height: img.naturalHeight });
-    };
-  }, [photo.url, photo.width, photo.height]);
+  const customData: PhotoSwipeCustomData = {
+    uploaderName: photo.uploaderName || photo.uploaderId,
+    uploaderId: photo.uploaderId,
+    timestamp: photo.timestamp
+  };
 
   return (
     <Item 
       original={photo.url}
       thumbnail={thumbUrl} 
-      width={size.width} 
-      height={size.height}
-      // Fix: Cast custom props to any to avoid TypeScript errors
-      {...({
-        uploaderName: photo.uploaderName || photo.uploaderId,
-        uploaderId: photo.uploaderId,
-        timestamp: photo.timestamp
-      } as any)}
+      width={width} 
+      height={height}
+      {...(customData as any)}
     >
       {({ ref, open }) => (
         <div 
@@ -105,7 +130,7 @@ const Gallery: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchCount = async () => {
-    const count = await DataService.getPhotoCount('gallery');
+    const count = await PhotoService.getPhotoCount('gallery');
     setTotalCount(count);
   };
 
@@ -130,7 +155,7 @@ const Gallery: React.FC = () => {
     
     try {
       const cursor = cursorsCache.current[cacheKey] || null;
-      const { photos: newPhotos, lastVisible } = await DataService.fetchPhotosPaged(
+      const { photos: newPhotos, lastVisible } = await PhotoService.fetchPhotosPaged(
         'gallery', 
         PAGE_SIZE, 
         cursor,
@@ -194,7 +219,7 @@ const Gallery: React.FC = () => {
       const files = Array.from(e.target.files).slice(0, 10);
       await Promise.all(files.map(async (f) => {
         const compressed = await compressImage(f);
-        await DataService.uploadPhoto(compressed, 'gallery', user);
+        await PhotoService.uploadPhoto(compressed, 'gallery', user);
       }));
       
       pagesCache.current = {};
@@ -214,7 +239,7 @@ const Gallery: React.FC = () => {
       
       setDeletingId(photo.id);
       try { 
-        await DataService.deletePhoto(photo);
+        await PhotoService.deletePhoto(photo);
         pagesCache.current = {};
         cursorsCache.current = { [`1_${sortBy}_${isDescending}`]: null };
         await fetchCount();
@@ -289,37 +314,20 @@ const Gallery: React.FC = () => {
               appendTo: 'bar',
               tagName: 'div',
               onInit: (el, pswp) => {
-                el.style.flex = '1';
-                el.style.display = 'flex';
-                el.style.alignItems = 'center';
-                el.style.paddingLeft = '20px';
-                el.style.paddingTop = '10px';
-                el.style.overflow = 'hidden';
+                  Object.assign(el.style, {
+                    flex: '1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingLeft: '20px',
+                    paddingTop: '10px',
+                    overflow: 'hidden'
+                  });
 
                 pswp.on('change', () => {
                   const currSlide = pswp.currSlide;
                   if (!currSlide || !currSlide.data) return;
-
-                  const { uploaderName, uploaderId, timestamp } = currSlide.data as any;
-                  const timeStr = timestamp ? new Date(timestamp).toLocaleString('zh-TW', {
-                    hour12: false
-                  }) : '';
-
-                  el.innerHTML = `
-                    <div class="flex flex-col justify-center text-left leading-tight select-none">
-                      <div class="flex items-center gap-2">
-                         <span class="text-sm font-bold text-emerald-400 truncate max-w-[150px]">
-                           ${uploaderName || uploaderId}
-                         </span>
-                         <span class="text-[10px] text-slate-400 bg-slate-800 px-1.5 rounded border border-slate-700">
-                           ${uploaderId}
-                         </span>
-                      </div>
-                      <div class="text-[10px] text-slate-400 font-mono mt-1 opacity-80 flex items-center gap-1">
-                        <span>${timeStr}</span>
-                      </div>
-                    </div>
-                  `;
+                  const data = currSlide.data as PhotoSwipeCustomData;
+                  el.innerHTML = createCaptionHtml(data);
                 });
               }
             });

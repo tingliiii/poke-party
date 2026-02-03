@@ -92,7 +92,6 @@ export const updateUserName = async (userId: string, newName: string) => {
     // 3. 執行批次寫入 (Atomic Commit)
     // 這一口氣會更新 "1 個使用者文件 + N 張照片文件"，要嘛全成功，要嘛全失敗
     await batch.commit();
-    console.log(`[UserService] 姓名已同步更新至 ${querySnapshot.size} 張照片`);
   } catch (error) {
     console.error("[UserService] 同步更新姓名失敗:", error);
     throw error;
