@@ -1,2 +1,2 @@
 // Placeholder for Seating Chart
-export const SEATING_CHART_URL = "https://firebasestorage.googleapis.com/v0/b/pokeparty-f7572.firebasestorage.app/o/config%2Fseating_1769347302156?alt=media&token=daf13fa2-dadf-4e42-b417-4a5dfba7a92b";
+export const SEATING_CHART_URL = "https://firebasestorage.googleapis.com/v0/b/pokeparty-f7572.firebasestorage.app/o/config%2Fseating_1769347302156_200x200?alt=media&token=daf13fa2-dadf-4e42-b417-4a5dfba7a92b";

@@ -75,19 +75,13 @@ const Seating: React.FC = () => {
       </div>
 
       <div className="bg-amber-900/10 border border-amber-500/20 text-amber-200/80 p-4 rounded-xl text-sm w-full font-mono relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-        <p className="font-bold mb-1 text-amber-400">:: 注意事項 ::</p>
-        <p className="text-xs leading-relaxed opacity-80">
-        <li className="ps-3">
-        舞台位置在上方
-        </li>
-        <li className="ps-3">
-        請按照座位表之標示入座
-        </li>        
-        <li className="ps-3">
-        可點擊圖片開啟滿版模式
-        </li>
-        </p>
+         <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+         <p className="font-bold mb-1 text-amber-400">:: 注意事項 ::</p>
+         <ul className="text-xs leading-relaxed opacity-80 space-y-1 list-disc list-inside">
+           <li className="ps-1">舞台位置在上方</li>
+           <li className="ps-1">請按照座位表之標示入座</li>        
+           <li className="ps-1">可點擊圖片開啟滿版模式</li>
+         </ul>
       </div>
 
       {user?.isAdmin && (

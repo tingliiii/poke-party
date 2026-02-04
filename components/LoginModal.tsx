@@ -27,12 +27,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 嚴格校驗：必須為五位數字
-    if (!/^\d{5}$/.test(employeeId)) {
-      setError("員編必須為精確的五位數字");
-      return;
-    }
-    
     setIsProcessing(true);
     try {
         await login(employeeId);
@@ -75,6 +69,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
                         type="text" 
                         inputMode="numeric" 
                         pattern="[0-9]*"
+                        maxLength={5}
                         className={`w-full bg-black/30 text-center text-3xl font-display py-4 border-b-2 outline-none transition-all placeholder:text-slate-800 tracking-widest ${
                             error ? 'border-poke-red text-poke-red' : (isValidLength ? 'border-poke-cyan text-white' : 'border-slate-700 text-slate-400')
                         }`}
