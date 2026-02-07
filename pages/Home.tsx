@@ -110,7 +110,6 @@ const Home: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-10">
-
       {/* 使用者資訊區 */}
       <section className="animate-fade-in-up">
         {user ? (

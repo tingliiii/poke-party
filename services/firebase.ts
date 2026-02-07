@@ -1,4 +1,3 @@
-
 /**
  * Firebase 核心初始化服務
  * 負責連結 Google Firebase 各項後端服務 (Firestore 數據庫與 Storage 存儲)
@@ -6,12 +5,11 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { FirebaseConfig } from "../types";
 
-// Firebase 配置對象：定義應用的後端基礎設施參數
-// 根據開發者規範，apiKey 必須從環境變量 process.env.API_KEY 中讀取
 const firebaseConfig: FirebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "", 
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "", 
   authDomain: "pokeparty-f7572.firebaseapp.com",
   projectId: "pokeparty-f7572",
   storageBucket: "pokeparty-f7572.firebasestorage.app",
@@ -25,10 +23,18 @@ const firebaseConfig: FirebaseConfig = {
  */
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// 匯出 Firestore (NoSQL 數據庫) 實例
-const db = getFirestore(app);
+if (typeof window !== 'undefined') {
+  try {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
+      isTokenAutoRefreshEnabled: true 
+    });
+  } catch (e) {
+    console.warn("App Check init failed:", e);
+  }
+}
 
-// 匯出 Storage (雲端文件存儲) 實例，用於存放照片
+const db = getFirestore(app);
 const storage = getStorage(app);
 
 export { app, db, storage };

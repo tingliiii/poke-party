@@ -1,6 +1,5 @@
 
 import React from 'react';
-/* Fix: Explicitly import HashRouter, Routes, Route, and Navigate from react-router-dom to resolve module export errors */
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
