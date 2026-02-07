@@ -6,9 +6,9 @@ steps:
     args:
       - 'build'
       - '--build-arg'
-      - 'VITE_FIREBASE_API_KEY=$_FIREBASE_KEY'
+      - 'VITE_FIREBASE_API_KEY=$_FIREBASE_API_KEY'
       - '--build-arg'
-      - 'VITE_RECAPTCHA_SITE_KEY=$_RECAPTCHA_KEY'
+      - 'VITE_RECAPTCHA_SITE_KEY=$_RECAPTCHA_SITE_KEY'
       - '-t'
       - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/pokeparty-2026:latest'
       - '.'
